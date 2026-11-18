@@ -84,7 +84,8 @@ if __name__ == '__main__':
         for r in res:
             c = C.setdefault(code[r['x']], {}); c.setdefault('K', 0); c.setdefault('per_plan', {}); c.setdefault('checked', {})
             if r['status'] == 'adjusted': c['per_plan'][r['plan']] = round(c['per_plan'].get(r['plan'], c['K']) + r['err'], 1 if r.get('fine') else 0)
-            if r['status'] in ('ok', 'adjusted'): c['checked'][r['plan']] = when
+            # only a fine sample meets the 1-second standard, so only that counts a plan as verified
+            if r['status'] in ('ok', 'adjusted') and r.get('fine'): c['checked'][r['plan']] = when
         json.dump(C, open(f'{D}/calib.json', 'w'), ensure_ascii=False, indent=1)
         p = f'{D}/checks.json'; log = json.load(open(p)) if os.path.exists(p) else []
         log += [dict(when=when, **r) for r in res] or [dict(when=when, status='no-band')]

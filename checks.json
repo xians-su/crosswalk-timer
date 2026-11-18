@@ -1,18 +1,5 @@
 [
 {
-"when": "2026-11-18 17:37",
-"days": "wd",
-"plan": "11",
-"from": 61200,
-"cycles": 4,
-"clean": 4,
-"red_len": 80.7,
-"red_len_plan": 82,
-"err": -0.9,
-"spread": 2.9,
-"status": "ok"
-},
-{
 "when": "2026-11-18 17:02",
 "x": "chifeng",
 "days": "wd",
@@ -73,36 +60,6 @@
 "status": "ok"
 },
 {
-"when": "2026-11-18 17:02",
-"x": "chengde",
-"days": "wd",
-"plan": "11",
-"from": 61200,
-"cycles": 50,
-"clean": 45,
-"len": 61.5,
-"len_plan": 61,
-"err": -1.3,
-"spread": 9.8,
-"agree": 39,
-"status": "ok"
-},
-{
-"when": "2026-11-18 17:02",
-"x": "chengde",
-"days": "wd",
-"plan": "08",
-"from": 72000,
-"cycles": 31,
-"clean": 21,
-"len": 58.2,
-"len_plan": 57,
-"err": -1.9,
-"spread": 6.1,
-"agree": 17,
-"status": "ok"
-},
-{
 "when": "2026-11-18 21:19",
 "x": "chifeng",
 "days": "wd",
@@ -131,20 +88,5 @@
 "spread": 1.0,
 "agree": 3,
 "status": "ok"
-},
-{
-"when": "2026-11-18 21:19",
-"x": "chengde",
-"days": "wd",
-"plan": "08",
-"from": 72000,
-"cycles": 7,
-"clean": 4,
-"len": 58.2,
-"len_plan": 57,
-"err": -6.0,
-"spread": 5.3,
-"agree": 3,
-"status": "adjusted"
 }
 ]

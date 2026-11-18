@@ -35,7 +35,8 @@ if __name__ == '__main__':
     first = PL[XS[0]['code']]
     watched = [X for X in XS if X.get('lamp')]      # only crossings the camera check can measure count towards the progress note
     done = sum(len(C.get(X['code'], {}).get('checked', {})) for X in watched); total = sum(len(PL[X['code']]['plans']) for X in watched)
-    note = f"交工處時制表 {first['data_time'][:10]} 版・攝影機已核對 {done}/{total} 套時制"
+    last = max((w for X in watched for w in C.get(X['code'], {}).get('checked', {}).values()), default='')      # stale checks must be visible
+    note = f"交工處時制表 {first['data_time'][:10]} 版・攝影機已核對 {done}/{total} 套時制" + (f"・最近 {last[5:]}" if last else '')
     def crossing(i, X):
         P, c = PL[X['code']], C.get(X['code'], {})
         out = {'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'], 'bands': bands(P, X, c)}
