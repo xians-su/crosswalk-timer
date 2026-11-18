@@ -48,9 +48,10 @@ header b{color:var(--fg);font-weight:700;font-size:20px}
 #rain{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
 #rainMsg{font-size:22px;font-weight:700}
 #rainMsg.wet{color:var(--wait)}
-#rainSub,#wxNow,#radarCap{color:var(--muted);font-size:14px}
+#rainSub,#wxNow{color:var(--muted);font-size:14px}
 #rainWarn{color:var(--wait);font-weight:700;font-size:15px}
-#radar{display:block;position:relative;overflow:hidden;aspect-ratio:4/3;border-radius:12px;margin-top:10px;background:var(--bg)}
+#radar{display:block;position:relative;overflow:hidden;aspect-ratio:4/3;border-radius:12px;background:var(--bg)}
+#cam{display:block;width:100%;aspect-ratio:3/2;border-radius:12px;background:#000000}
 #radar img{position:absolute;width:450%;max-width:none;left:-191.75%;top:-239%}
 #radar i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px;border-radius:50%;border:2px solid #14201c;background:#ffffff}
 #nexts{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
@@ -62,9 +63,30 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--go);outline-o
 button.main{background:var(--ink-btn);color:var(--ink-btn-fg);border-color:var(--ink-btn);font-weight:700;width:100%;min-height:52px;font-size:17px}
 details{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
 summary{cursor:pointer;font-weight:600;min-height:28px}
+#leave details{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0 0}
 details>div{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 p{margin:0;color:var(--muted);font-size:14px}
 #src{font-size:13px;color:var(--muted);text-align:center}
+/* --- layout pass: one glance block on top, quiet lists below --- */
+#word{font-size:26px}
+#leaveMsg{margin-top:16px;padding:12px;border-radius:14px;background:var(--panel);color:var(--fg);font-size:22px}
+#leave{gap:12px}
+#nexts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;font-size:14px}
+#nexts span{border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+#rain{display:flex;flex-direction:column;gap:6px}
+#wxCells{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+#wxCells:empty{display:none}
+.cell{background:var(--bg);border-radius:12px;padding:10px 12px;min-width:0}
+.cell small{display:block;color:var(--muted);font-size:12px;line-height:1.4}
+.cell b{display:block;font-family:var(--num);font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+.group{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.group details{background:none;border:0;border-radius:0}
+.group details+details{border-top:1px solid var(--line)}
+summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";flex:none;width:8px;height:8px;margin-right:4px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(-135deg)}
+@media (prefers-reduced-motion: reduce){summary::after,#now{transition:none}}
 </style>
 </head>
 <body>
@@ -76,43 +98,60 @@ p{margin:0;color:var(--muted);font-size:14px}
     <div id="secs">--</div>
     <div id="sub">這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時</div>
     <div id="strip" hidden><i id="stripGo"></i><u id="stripNow"></u></div>
+    <div id="leaveMsg">--</div>
   </section>
 
   <section id="leave">
-    <div id="leaveMsg">--</div>
     <div class="row"><span>走到路口要</span>
       <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
     <div class="row"><span>之後可以過</span><span id="nexts"></span></div>
+    <details id="adv">
+      <summary>校正</summary>
+      <div>
+        <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
+        <div class="row"><span>提早／延後</span>
+          <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
+        <div class="row"><span>一輪長度</span>
+          <span class="step"><button id="cycDn" aria-label="減少 1 秒">−</button><output id="cycOut">200 秒</output><button id="cycUp" aria-label="增加 1 秒">＋</button></span></div>
+        <div class="row"><span>可過的時間</span>
+          <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
+        <div class="row"><span>過馬路本身要</span>
+          <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
+        <div class="row"><label for="cwaKey">氣象署金鑰</label>
+          <span class="step"><input id="cwaKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CWA-…" style="font:inherit;width:11em;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)"><button id="cwaSave">儲存</button></span></div>
+        <button id="clear">清除我的對時，改用實測時刻表</button>
+        <p>填了氣象署金鑰，帶傘提示會改用氣象署資料：附近雨量站的實測雨量、大同區降雨機率、天氣特報、氣溫與體感；沒填就只用國外模型的預報。金鑰只存在這支手機。</p>
+        <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
+      </div>
+    </details>
   </section>
 
   <section id="rain">
     <div id="rainWarn" hidden></div>
     <div id="rainMsg">查詢天氣中</div>
-    <div id="rainSub"></div>
-    <div id="wxNow" hidden></div>
-    <a id="radar" href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener" aria-label="開啟氣象署雷達回波頁"><img id="radarImg" alt="雷達回波圖"><i></i></a>
-    <div id="radarCap">雷達回波（樹林雷達）。白點是路口，畫面寬約 80 公里，顏色越暖雨越大</div>
+    <div id="wxCells"></div>
+    <div id="rainSub" hidden></div>
   </section>
 
-  <details id="adv">
-    <summary>校正</summary>
+  <section class="group">
+
+  <details id="radarBox">
+    <summary>雷達回波圖</summary>
     <div>
-      <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
-      <div class="row"><span>提早／延後</span>
-        <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
-      <div class="row"><span>一輪長度</span>
-        <span class="step"><button id="cycDn" aria-label="減少 1 秒">−</button><output id="cycOut">200 秒</output><button id="cycUp" aria-label="增加 1 秒">＋</button></span></div>
-      <div class="row"><span>可過的時間</span>
-        <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
-      <div class="row"><span>過馬路本身要</span>
-        <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
-      <div class="row"><label for="cwaKey">氣象署金鑰</label>
-        <span class="step"><input id="cwaKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CWA-…" style="font:inherit;width:11em;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)"><button id="cwaSave">儲存</button></span></div>
-      <button id="clear">清除我的對時，改用實測時刻表</button>
-      <p>填了氣象署金鑰，帶傘提示會改用氣象署資料：附近雨量站的實測雨量、大同區降雨機率、天氣特報、氣溫與體感；沒填就只用國外模型的預報。金鑰只存在這支手機。</p>
-      <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
+      <a id="radar" href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener" aria-label="開啟氣象署雷達回波頁"><img id="radarImg" alt="雷達回波圖"><i></i></a>
+      <p>樹林雷達。白點是路口，畫面寬約 80 公里，顏色越暖雨越大。</p>
     </div>
   </details>
+
+  <details id="camBox">
+    <summary>路口即時影像</summary>
+    <div>
+      <video id="cam" muted playsinline controls></video>
+      <p id="camMsg">承德路口往南京西路方向的攝影機，赤峰街口在畫面後方。</p>
+    </div>
+  </details>
+  </section>
+
   <div id="src"></div>
 </main>
 <script>
@@ -182,7 +221,7 @@ function render(){
     $('sub').textContent = s.go ? '秒後車道轉綠' : '秒後可以過';
     $('stripGo').style.width = (p.red/p.cycle*100)+'%';
     $('stripNow').style.left = (s.ph/p.cycle*100)+'%';
-    $('nexts').textContent = [1,2,3].map(k => hms(t - s.ph + k*p.cycle)).join('　');
+    $('nexts').innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
     const w = leaveIn(p, t), lm = $('leaveMsg');
     if (w===null){ lm.textContent = '可過時間太短，調整下方秒數'; lm.className=''; }
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
@@ -270,30 +309,52 @@ function cwaView(g, warn, obs, fc, t){
   else if (pop !== null && pop >= 40){ v.wet = true; v.msg = '可能下雨，建議帶傘'; }
   else if (pop === null && !fresh) v.msg = '查不到雨量資料';
   if (v.warn) v.wet = true;
-  v.sub = (fresh ? g.name+'測站 '+g.time+' 前 10 分鐘雨量 '+g.mm+' mm。' : '') + (pop !== null ? span+'降雨機率 '+pop+'%'+(wx ? '（'+wx+'）' : '') : '');
-  try {
-    const e = obs.records.Station[0].WeatherElement, temp = num(e.AirTemperature), wind = num(e.WindSpeed), parts = [];
-    if (temp !== null) parts.push('氣溫 '+temp+'°C');
-    if (feel !== null) parts.push('體感 '+feel+'°C');
-    if (wind !== null) parts.push('風速 '+wind+' m/s');
-    v.now = parts.join('　');
-  } catch (e) { if (feel !== null) v.now = '體感 '+feel+'°C'; }
+  let temp = null, wind = null;
+  try { const e = obs.records.Station[0].WeatherElement; temp = num(e.AirTemperature); wind = num(e.WindSpeed); } catch (e) {}
+  v.cells = [];
+  if (fresh) v.cells.push({k:'10 分鐘雨量', v:g.mm+' mm', n:g.name+' '+g.time});
+  if (pop !== null) v.cells.push({k:'降雨機率', v:pop+'%', n:span+(wx ? '・'+wx : '')});
+  if (feel !== null) v.cells.push({k:'體感', v:feel+'°C', n:temp !== null ? '氣溫 '+temp+'°C' : ''});
+  else if (temp !== null) v.cells.push({k:'氣溫', v:temp+'°C', n:'臺北站'});
+  if (wind !== null) v.cells.push({k:'風速', v:wind+' m/s', n:'臺北站'});
   return v;
 }
 function showRain(v){
   $('rainWarn').hidden = !v.warn; $('rainWarn').textContent = v.warn ? '臺北市 '+v.warn : '';
   $('rainMsg').textContent = v.msg; $('rainMsg').className = v.wet ? 'wet' : '';
-  $('rainSub').textContent = v.sub;
-  $('wxNow').hidden = !v.now; $('wxNow').textContent = v.now || '';
+  $('rainSub').hidden = !v.sub; $('rainSub').textContent = v.sub || '';
+  const box = $('wxCells'); box.textContent = '';
+  for (const c of v.cells || []){
+    const d = document.createElement('div'); d.className = 'cell';
+    for (const [tag, txt] of [['small', c.k], ['b', c.v], ['small', c.n]]){ if (!txt) continue; const e = document.createElement(tag); e.textContent = txt; d.appendChild(e); }
+    box.appendChild(d);
+  }
 }
 function rainForecastOnly(note){
   fetch(WX).then(r => r.json()).then(d => {
     const u = umbrella(d, null, Date.now()/1000);
-    showRain({wet:u.wet, msg:u.msg, sub:(note || '')+'一小時內降雨機率 '+u.prob+'%（預報）', warn:'', now:''});
-  }).catch(() => showRain({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', now:''}));
+    showRain({wet:u.wet, msg:u.msg, sub:note || '', warn:'', cells:[{k:'降雨機率', v:u.prob+'%', n:'一小時內・預報'}]});
+  }).catch(() => showRain({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', cells:[]}));
 }
+/* 雷達圖與即時影像：點開才載入，收合就停 */
+function loadRadar(){ if ($('radarBox').open) $('radarImg').src = 'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0084-001.png?t=' + Math.floor(Date.now()/300000); }
+$('radarBox').addEventListener('toggle', loadRadar);
+const CAM = 'https://jtmctrafficcctv3.gov.taipei/NVR/4309f60c-3f97-41ea-8598-84a0dd149f87/live.m3u8';
+let hls = null;
+function camFail(){ $('camMsg').innerHTML = '影像載入失敗。<a href="https://tw.live/cam/?id=BOT415" target="_blank" rel="noopener">改到 tw.live 看</a>'; }
+function camStop(){ const v = $('cam'); v.pause(); if (hls){ hls.destroy(); hls = null; } v.removeAttribute('src'); v.load(); }
+function camStart(){
+  const v = $('cam');
+  if (v.canPlayType('application/vnd.apple.mpegurl')){ v.src = CAM; v.play().catch(() => {}); return; }   // Safari 內建支援
+  const go = () => { if (!window.Hls || !Hls.isSupported()) return camFail(); hls = new Hls({lowLatencyMode:true}); hls.on(Hls.Events.ERROR, (e, d) => { if (d.fatal) camFail(); }); hls.loadSource(CAM); hls.attachMedia(v); v.play().catch(() => {}); };
+  if (window.Hls) return go();
+  const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js'; s.onload = go; s.onerror = camFail; document.head.appendChild(s);
+}
+$('cam').addEventListener('error', camFail);
+$('camBox').addEventListener('toggle', () => $('camBox').open ? camStart() : camStop());
+document.addEventListener('visibilitychange', () => { if ($('camBox').open) document.visibilityState === 'visible' ? camStart() : camStop(); });
 function rain(){
-  $('radarImg').src = 'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0084-001.png?t=' + Math.floor(Date.now()/300000);
+  loadRadar();
   const key = store.get('cwaKey', '');
   if (!key) return rainForecastOnly('');
   const get = u => fetch(u + '&Authorization=' + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => null);
