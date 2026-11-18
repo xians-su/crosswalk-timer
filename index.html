@@ -122,9 +122,17 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #wxLine{color:var(--muted);font-size:12.5px;line-height:1.4}
 #rainMsg.wet,#rainNote.wet,#wxLine.wet{color:var(--wet)}
 
+/* settings: titled groups separated by hairlines */
+.sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:8px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:13px;font-weight:700;color:var(--fg)}
+.sec:first-child{margin-top:0;padding-top:2px;border-top:0}
+.sec span{font-size:12px;font-weight:400;color:var(--muted)}
+.sec b{color:var(--fg);font-weight:600}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair button{padding:0 8px}
+
 /* drag-to-reorder list of crossings */
 #orderList{display:flex;flex-direction:column;gap:6px}
-.orow{display:flex;align-items:center;gap:4px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font-weight:600}
+.orow{display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:44px;padding-left:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font-weight:600}
 .orow.drag{border-color:var(--brand);box-shadow:0 4px 14px rgba(0,0,0,.18);position:relative;z-index:2}
 .grip{touch-action:none;cursor:grab;display:grid;place-items:center;width:44px;height:44px;font-size:20px;color:var(--muted);user-select:none;-webkit-user-select:none}
 
@@ -223,18 +231,23 @@ footer span:nth-child(odd){opacity:.8}
   <details id="adv">
     <summary>設定與校正</summary>
     <div>
+      <h3 class="sec">路口順序<span>按住 ≡ 上下拖</span></h3>
+      <div id="orderList"></div>
+
+      <h3 class="sec">時間</h3>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
-      <div class="row"><span>路口順序</span><span class="lbl">按住 ≡ 上下拖</span></div>
-      <div id="orderList"></div>
-      <div class="row"><span>顯示 Memo（自己的備忘欄）</span>
+      <p>「走到路口要」幾秒，在每個路口展開後的卡片上調。</p>
+
+      <h3 class="sec">顯示</h3>
+      <div class="row"><span>Memo 備忘欄</span>
         <button id="memoOn" class="sw" role="switch" aria-checked="false" aria-label="顯示 Memo"><i></i></button></div>
-      <p>以下套用在：<b id="selName"></b>（展開哪個路口就調哪個）</p>
+
+      <h3 class="sec">校正<span>套用在 <b id="selName"></b></span></h3>
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
-      <button id="sync">行人綠燈剛亮（以這一刻重新對時）</button>
-      <button id="clear">清除我的對時，改回時刻表</button>
-      <p>平常不用校正。若某個時段不準，在路口看到行人綠燈亮起的那一刻按上面的按鈕，之後 3 小時以那一刻為準。</p>
+      <div class="pair"><button id="sync">行人綠燈剛亮</button><button id="clear">清除對時</button></div>
+      <p>平常不用校正。某個時段不準時，先展開那個路口，在現場看到行人綠燈亮起的那一刻按「行人綠燈剛亮」，之後 3 小時以那一刻為準；「清除對時」回到時刻表。</p>
     </div>
   </details>
   <details id="wxBox">
@@ -379,7 +392,7 @@ function orderPaint(){
     const row = document.createElement('div'); row.className = 'orow'; row.dataset.id = x.id;
     const grip = document.createElement('span'); grip.className = 'grip'; grip.textContent = '≡'; grip.setAttribute('aria-label', '拖曳調整 ' + x.name + ' 的順序');
     const name = document.createElement('span'); name.textContent = x.name;
-    row.append(grip, name); list.appendChild(row);
+    row.append(name, grip); list.appendChild(row);          // 把手在右邊
     grip.addEventListener('pointerdown', ev => {
       ev.preventDefault(); grip.setPointerCapture(ev.pointerId); row.classList.add('drag');
       const move = e => {                                  // 指標越過鄰居的中線就換位
