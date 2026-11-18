@@ -17,10 +17,6 @@ jobs:
       - run: python3 parse_plan.py
       - name: Rebuild and commit
         run: |
-          if ! git diff --quiet -- plans.json; then
-            # a new official plan invalidates earlier camera corrections
-            echo '{"K": 0, "per_plan": {}, "checked": {}}' > calib.json
-          fi
           python3 build.py
           git config user.name "crosswalk-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

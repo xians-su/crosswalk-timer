@@ -33,6 +33,7 @@ def main(minutes=None, out=None):
     init, init_t, seen = None, 0, None
     tmp = (out + '.mp4') if out else os.path.join(D, 't.mp4')
     t_end = time.time() + minutes * 60 if minutes else None
+    if not out: os.makedirs(D, exist_ok=True)      # the data/ folder is not part of the repository
     while t_end is None or time.time() < t_end:
         t0 = time.time()
         try:

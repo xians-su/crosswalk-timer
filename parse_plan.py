@@ -2,7 +2,7 @@
 """Download the official timing-plan PDF of every crossing in crossings.json and write plans.json
 ({code: plan}). Exits non-zero (so the workflow fails and GitHub notifies) if a layout no longer matches
 what the timetable model assumes: Mon-Fri identical, Sat=Sun, the expected number of phases summing to the cycle."""
-import json, os, re, subprocess, sys, urllib.request
+import json, os, re, subprocess, sys, tempfile, urllib.request
 D = os.path.dirname(os.path.abspath(__file__))
 URL = 'https://www.ttcx.dot.gov.taipei/cpt/api/TimingPlan/pdf/'
 PLAN = re.compile(r'(?:^|\s)(\d{2})\s+(\d{2,3})\s+(\d{1,3})\s+(\d)\s+([0-9A-F]{2})\s+((?:\d+\s*)+)$')
@@ -50,14 +50,16 @@ if __name__ == '__main__':
     # parse_plan.py            -> download every crossing's PDF
     # parse_plan.py DIR        -> read DIR/<code>.pdf instead (tests)
     old = json.load(open(f'{D}/plans.json')) if os.path.exists(f'{D}/plans.json') else {}
-    new, changed = {}, False
+    new, changed, content_changed = {}, False, False
     for X in json.load(open(f'{D}/crossings.json')):
-        pdf = os.path.join(sys.argv[1], X['code'] + '.pdf') if len(sys.argv) > 1 else f"/tmp/{X['code']}.pdf"
+        pdf = os.path.join(sys.argv[1] if len(sys.argv) > 1 else tempfile.gettempdir(), X['code'] + '.pdf')
         if len(sys.argv) <= 1:
             req = urllib.request.Request(URL + X['code'], headers={'User-Agent': 'Mozilla/5.0'})
             open(pdf, 'wb').write(urllib.request.urlopen(req, timeout=60).read())
         n = parse(subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout, X)
         o = old.get(X['code'], {}); same = all(o.get(k) == n[k] for k in ('wd', 'we', 'plans'))
         print(X['code'], 'official plan', n['data_time'], 'unchanged' if same else 'CHANGED')
-        changed |= not same or o.get('data_time') != n['data_time']; new[X['code']] = n
+        content_changed |= not same; changed |= not same or o.get('data_time') != n['data_time']; new[X['code']] = n
     if changed: json.dump(new, open(f'{D}/plans.json', 'w'), ensure_ascii=False, indent=1)
+    if content_changed and old:      # a new official plan invalidates earlier camera corrections (not on the very first run)
+        json.dump({'K': 0, 'per_plan': {}, 'checked': {}}, open(f'{D}/calib.json', 'w')); print('camera corrections reset')
