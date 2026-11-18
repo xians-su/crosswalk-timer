@@ -122,6 +122,12 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #wxLine{color:var(--muted);font-size:12.5px;line-height:1.4}
 #rainMsg.wet,#rainNote.wet{color:var(--wet)}
 
+/* memo: typed by the viewer, stored only in their own browser */
+#memo{padding:10px 16px 11px;border-radius:20px}
+#memo .lbl{display:block}
+#memoText{display:block;width:100%;margin:2px 0 0;padding:0;border:0;outline:0;background:none;color:var(--fg);font:inherit;font-size:16px;line-height:1.5;resize:none;overflow:hidden}
+#memoText::placeholder{color:var(--muted);opacity:.7}
+
 /* weather figures: one card, hairline grid */
 #wxCells{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}
 #wxCells:empty{display:none}
@@ -190,6 +196,11 @@ footer span:nth-child(odd){opacity:.8}
   </section>
 
   <div id="rainSub" hidden></div>
+
+  <section id="memo" class="card">
+    <label class="lbl" for="memoText">出門記得帶</label>
+    <textarea id="memoText" rows="1" placeholder="點這裡輸入，例如：識別證、便當盒" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+  </section>
 
   <details id="more">
   <summary>設定・天氣細節・雷達・影像</summary>
@@ -473,6 +484,9 @@ function verdict(v, radar, t){
   else if (fc && fc.mm >= 0.5){ v.wet = true; v.msg = '一小時內有' + rainWord(fc.mm) + '，帶傘'; }
   else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內可能有毛毛雨，建議帶傘'; }
   else if (fc){ v.wet = !!v.warn; v.msg = '一小時內不會下雨'; }
+  /* 不會下雨但紫外線到過量級（指數 8，氣象署建議外出撐傘戴帽）以上：大字改成建議遮陽 */
+  const uv = v.brief ? v.brief.uv : null;
+  if (!v.wet && !v.rainingNow && uv >= 8 && (v.msg === '一小時內不會下雨' || v.msg === '不用帶傘')){ v.sun = true; v.msg = '紫外線' + uvLevel(uv) + '，建議遮陽'; }
   return v;
 }
 /* 氣象署：特報、臺北站即時觀測、大同區逐時預報 */
@@ -521,12 +535,12 @@ function showRain(v){
   else if (v.msg === '不用帶傘'){ head = v.msg; note = '降雨機率低'; }
   else { head = v.msg; note = ''; }
   if (v.warn){ note = '臺北市 '+v.warn; if (head === '不用帶傘') head = '建議帶傘'; }
-  $('rainMsg').textContent = head; $('rainMsg').className = v.wet ? 'wet' : '';
+  $('rainMsg').textContent = head; $('rainMsg').className = v.wet || v.sun ? 'wet' : '';
   $('rainNote').textContent = note; $('rainNote').className = v.warn ? 'wet' : '';
   $('rainSub').hidden = !v.sub; $('rainSub').textContent = v.sub || '';
   const bf = v.brief || {}, bits = [];                 // 體感接在原因後面；紫外線和風只在明顯時才提（6 以上、每秒 8 公尺以上，門檻自訂）
   if (bf.feel !== null && bf.feel !== undefined) bits.push('體感 '+Math.round(bf.feel)+'°C');
-  if (bf.uv >= 6) bits.push('紫外線'+uvLevel(bf.uv));
+  if (bf.uv >= 6 && !v.sun) bits.push('紫外線'+uvLevel(bf.uv));
   if (bf.wind >= 8) bits.push('風大');
   $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('・');
   const box = $('wxCells'); box.textContent = '';
@@ -618,8 +632,14 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 let lastTap = 0;
 document.addEventListener('touchend', e => {
   const now = Date.now(), quick = now - lastTap < 350; lastTap = now;
-  if (quick && e.cancelable && !e.target.closest('button,summary,a,input,video,[role=button]')) e.preventDefault();
+  if (quick && e.cancelable && !e.target.closest('button,summary,a,input,textarea,video,[role=button]')) e.preventDefault();
 }, {passive:false});
+/* 備忘：只存在這支手機的瀏覽器裡，不會傳到任何地方 */
+const memo = $('memoText');
+const memoFit = () => { memo.style.height = 'auto'; memo.style.height = memo.scrollHeight + 'px'; };
+memo.value = store.get('memo', ''); memoFit();
+memo.addEventListener('input', () => { store.set('memo', memo.value); memoFit(); });
+addEventListener('resize', memoFit);
 setInterval(render, 250);
 </script>
 </body>
