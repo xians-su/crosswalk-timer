@@ -43,8 +43,10 @@ def check(csv, sched):
         if good.sum() < 3:
             r['status'] = 'mismatch' if len(ev) >= 4 and np.ptp(ln) <= 6 else 'unclear'
         else:
-            eg = e[good]; r['err'] = round(float(np.median(eg)) - BIAS, 1); r['spread'] = round(float(np.ptp(eg)), 1)
-            r['status'] = 'ok' if abs(r['err']) <= TOL and r['spread'] <= 4 else ('adjusted' if r['spread'] <= 3 else 'unclear')
+            eg = e[good]; core = eg[np.abs(eg - np.median(eg)) <= 2.5]          # ignore stray early/late detections
+            r['err'] = round(float(np.median(core)) - BIAS, 1); r['spread'] = round(float(np.ptp(core)), 1); r['agree'] = int(len(core))
+            if len(core) < 3 or len(core) < 0.6 * len(eg): r['status'] = 'unclear'
+            else: r['status'] = 'ok' if abs(r['err']) <= TOL else 'adjusted'
         res.append(r)
     return res, t
 
