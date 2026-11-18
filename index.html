@@ -123,7 +123,7 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #rainMsg.wet,#rainNote.wet,#wxLine.wet{color:var(--wet)}
 
 /* memo: typed by the viewer, stored only in their own browser */
-#memo{position:relative;min-height:68px;margin-top:6px;padding:10px 16px 11px;border-radius:20px;background:none;border:1.5px dashed var(--line)}   /* a note pad, not a status row: no fill, dashed outline */
+#memo{position:relative;min-height:104px;margin-top:14px;padding:10px 16px 11px;border-radius:20px;background:none;border:1.5px dashed var(--line)}   /* a note pad, not a status row: no fill, dashed outline */
 #memoClear{position:absolute;top:6px;right:8px;min-width:32px;min-height:32px;padding:0;border:0;border-radius:50%;color:var(--muted);display:grid;place-items:center}
 #memoClear svg{width:16px;height:16px;display:block}
 #memo .lbl{display:block;padding-right:30px}
@@ -202,7 +202,7 @@ footer span:nth-child(odd){opacity:.8}
   <section id="memo" class="card">
     <label class="lbl" for="memoText">Memo</label>
     <button id="memoClear" aria-label="清除 Memo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-    <textarea id="memoText" rows="1" placeholder="ex: 識別證、水壺...etc" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <textarea id="memoText" rows="2" placeholder="識別證、水壺…" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
   </section>
 
   <details id="more">
@@ -645,7 +645,7 @@ document.addEventListener('touchend', e => {
 }, {passive:false});
 /* 備忘：只存在這支手機的瀏覽器裡，不會傳到任何地方 */
 const memo = $('memoText');
-const memoFit = () => { memo.style.height = 'auto'; memo.style.height = memo.scrollHeight + 'px'; };
+const memoFit = () => { memo.style.height = 'auto'; memo.style.height = Math.max(memo.scrollHeight, 48) + 'px'; };   // 至少兩行高
 const memoSync = () => { $('memoClear').hidden = !memo.value; memoFit(); };
 memo.value = store.get('memo', ''); memoSync();
 memo.addEventListener('input', () => { store.set('memo', memo.value); memoSync(); });
