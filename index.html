@@ -87,7 +87,7 @@ p{margin:0;color:var(--muted);font-size:14px}
       <button class="main" id="copyW">複製小工具程式碼</button>
       <p id="copyMsg" hidden></p>
       <textarea id="wOut" hidden readonly rows="6" style="width:100%;font:12px ui-monospace,monospace;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px"></textarea>
-      <p>時刻表會自動更新，不用重貼。程式碼會帶入你上面設定的「走到路口要幾秒」，改了秒數才需要重新複製貼上。系統每隔幾分鐘才重新整理小工具一次：倒數到 0 之後數字會往上跳，代表燈已經變了，這時看時間軸上的時鐘時間，或點小工具開啟頁面。中型小工具另外會顯示出發倒數。</p>
+      <p>時刻表會自動更新，不用重貼。程式碼會帶入你上面設定的「走到路口要幾秒」，改了秒數才需要重新複製貼上。系統每隔幾分鐘才重新整理小工具一次：倒數到 0 之後數字會往上跳，代表燈已經變了，這時看時間軸上的時鐘時間，或點小工具開啟頁面。中型小工具另外會顯示出發倒數；大型再多 30 分鐘時間軸和接下來 4 次可過的時刻。</p>
     </div>
   </details>
   <div id="src"></div>
@@ -130,7 +130,7 @@ function windows(t, horizon) {
 
 const now = Date.now() / 1000;
 const SPAN = 600;                                  // 圖表涵蓋未來 10 分鐘
-const wins = windows(now, SPAN + 400);
+const wins = windows(now, 1900);
 const inWin = wins.length && wins[0][0] <= now;
 const change = wins.length ? (inWin ? wins[0][1] : wins[0][0]) : null;   // 下一次變燈
 const nextStart = wins.length ? (inWin ? (wins[1] || [null])[0] : wins[0][0]) : null;
@@ -139,7 +139,8 @@ let depart = null;
 for (const [s, e] of wins) { const d = Math.max(now, s - WALK); if (d + WALK <= e - CROSS) { depart = d; break; } }
 
 const fam = config.widgetFamily || "small";
-const lock = fam.startsWith("accessory"), wide = fam === "medium" || fam === "large";
+const big = fam === "large" || fam === "extraLarge";
+const lock = fam.startsWith("accessory"), wide = fam === "medium" || big;
 const w = new ListWidget();
 const fg = lock ? Color.white() : Color.dynamic(new Color("#14201c"), new Color("#e9f0ed"));
 const dim = lock ? Color.white() : Color.dynamic(new Color("#5d6b66"), new Color("#93a39d"));
@@ -153,18 +154,19 @@ function timer(parent, sec, size, color) {
   const x = parent.addDate(new Date(sec * 1000)); x.applyTimerStyle();
   x.font = Font.boldRoundedSystemFont(size); x.textColor = color; x.minimumScaleFactor = 0.5; x.lineLimit = 1; return x;
 }
-function hhmm(sec) { const d = new Date((sec + 8 * 3600) * 1000); return d.toISOString().substr(11, 5); }
+function hhmm(sec, n) { const d = new Date((sec + 8 * 3600) * 1000); return d.toISOString().substr(11, n || 5); }
 
 // 時間軸圖：紅底＝先等等，綠塊＝可以過，下方標時鐘時間
-function chart(width, height) {
+function chart(width, height, t0) {
+  t0 = t0 || now;
   const dc = new DrawContext(); dc.size = new Size(width, height); dc.opaque = false; dc.respectScreenScale = true;
-  const barH = height - 13, x = t => Math.max(0, Math.min(width, (t - now) / SPAN * width));
+  const barH = height - 13, x = t => Math.max(0, Math.min(width, (t - t0) / SPAN * width));
   let p = new Path(); p.addRoundedRect(new Rect(0, 0, width, barH), 4, 4); dc.addPath(p); dc.setFillColor(new Color(WAIT, 0.55)); dc.fillPath();
   dc.setFillColor(new Color(GO));
   for (const [s, e] of wins) { if (x(e) - x(s) < 1) continue; p = new Path(); p.addRoundedRect(new Rect(x(s), 0, x(e) - x(s), barH), 4, 4); dc.addPath(p); dc.fillPath(); }
   dc.setFont(Font.mediumSystemFont(9)); dc.setTextColor(new Color("#8a9690"));
   const step = width < 200 ? 180 : 120;             // 每 3 或 2 分鐘一個刻度
-  for (let m = Math.ceil(now / step) * step; m < now + SPAN - 30; m += step) {
+  for (let m = Math.ceil(t0 / step) * step; m < t0 + SPAN - 30; m += step) {
     dc.setFillColor(new Color("#8a9690")); dc.fillRect(new Rect(x(m), barH, 1, 3));
     dc.drawText(hhmm(m), new Point(Math.min(x(m) + 2, width - 26), barH + 2));
   }
@@ -192,10 +194,24 @@ if (change === null) {
   if (depart !== null) { label(R, depart - now < 1 ? "現在出發剛好" : "出發倒數", 11); if (depart - now >= 1) timer(R, depart, 18, fg); }
   w.addSpacer();
   const img = w.addImage(chart(300, 40)); img.imageSize = new Size(300, 40);
+  if (big) {
+    for (const k of [1, 2]) { w.addSpacer(4); const im = w.addImage(chart(300, 40, now + k * SPAN)); im.imageSize = new Size(300, 40); }
+    w.addSpacer(8);
+    label(w, "接下來可以過的時段", 11);
+    for (const [s, e] of wins.filter(x => x[0] > now).slice(0, 4)) {
+      const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
+      label(row, hhmm(s, 8) + " 起 " + Math.round(e - s) + " 秒", 14, fg);
+      row.addSpacer();
+      timer(row, s, 14, dim);
+    }
+    w.addSpacer(6);
+    const f = bandFor(now);
+    if (f) label(w, "一輪 " + f.b.cycle + " 秒，可過 " + f.b.red + " 秒；" + hhmm(f.end) + " 換時制", 11);
+  }
 }
 // 請系統在下一次變燈後重新整理（系統不保證準時；過時的話數字會往上跳，圖表上的時鐘時間仍然正確）
 w.refreshAfterDate = new Date(((change || now) + 1) * 1000);
-if (config.runsInWidget) Script.setWidget(w); else if (wide) await w.presentMedium(); else await w.presentSmall();
+if (config.runsInWidget) Script.setWidget(w); else if (big) await w.presentLarge(); else if (wide) await w.presentMedium(); else await w.presentSmall();
 Script.complete();
 </script>
 <script>
