@@ -62,4 +62,4 @@ if __name__ == '__main__':
         content_changed |= not same; changed |= not same or o.get('data_time') != n['data_time']; new[X['code']] = n
     if changed: json.dump(new, open(f'{D}/plans.json', 'w'), ensure_ascii=False, indent=1)
     if content_changed and old:      # a new official plan invalidates earlier camera corrections (not on the very first run)
-        json.dump({'K': 0, 'per_plan': {}, 'checked': {}}, open(f'{D}/calib.json', 'w')); print('camera corrections reset')
+        json.dump({}, open(f'{D}/calib.json', 'w')); print('camera corrections reset')

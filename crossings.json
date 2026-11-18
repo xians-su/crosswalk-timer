@@ -11,7 +11,20 @@
   "min_clear": 6,
   "default_walk": 90,
   "why": "phase 3 = 赤峰街 green; people cross 南京西路. min_clear = yellow 3 + all-red 3",
-  "dir": "橫越南京西路"
+  "dir": "橫越南京西路",
+  "lamp": {
+   "roi": "B",
+   "color": "red",
+   "lead": 2,
+   "len_phases": [
+    0,
+    2
+   ],
+   "len_extra": 2,
+   "len_tol": 6,
+   "strict": true,
+   "why": "the 南京西路 lamp at 赤峰街 turns red 2 s before people may cross and stays red through phases 1 and 3"
+  }
  },
  {
   "id": "zhongshan",
@@ -25,7 +38,21 @@
   "min_clear": 5,
   "default_walk": 120,
   "why": "phase 2 = pedestrian-only phase, all directions",
-  "dir": ""
+  "dir": "",
+  "lamp": {
+   "roi": "A",
+   "color": "red",
+   "lead": 7,
+   "len_phases": [
+    1,
+    2,
+    3
+   ],
+   "len_extra": 7,
+   "len_tol": 7,
+   "strict": false,
+   "why": "the 南京西路 lamp at 25 巷 turns red at the start of the 7 s all-red that ends phase 1, i.e. 7 s before the pedestrian phase"
+  }
  },
  {
   "id": "chengde",
@@ -62,6 +89,17 @@
      "CF": 1
     }
    }
-  ]
+  ],
+  "lamp": {
+   "roi": "C",
+   "color": "green",
+   "lead": 0,
+   "len_phases": "walk",
+   "len_extra": -9,
+   "len_tol": 9,
+   "strict": false,
+   "why": "the 南京西路 lamp at 承德路 turns green when people may start crossing 承德路 (first option); observed green is about 9 s shorter than the phase; its switch-on time is read less steadily than the red lamps, so a wider spread is accepted",
+   "jitter": 5
+  }
  }
 ]
