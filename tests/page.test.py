@@ -43,8 +43,8 @@ with sync_playwright() as p:
     pg.tap('.x >> nth=1 >> .xhead'); pg.wait_for_timeout(250); pg.tap('.x >> nth=2 >> .xhead'); pg.wait_for_timeout(250)
     ok('opening another card closes the previous one', pg.evaluate(OPEN) == [False, False, True])
     # --- walking time is per crossing and remembered
-    before = pg.evaluate("[...document.querySelectorAll('.walk output')].map(e=>e.textContent)")
-    pg.tap('.x.open .up'); pg.wait_for_timeout(200); after = pg.evaluate("[...document.querySelectorAll('.walk output')].map(e=>e.textContent)")
+    before = pg.evaluate("[...document.querySelectorAll('.walkstep output')].map(e=>e.textContent)")
+    pg.tap('.x.open .up'); pg.wait_for_timeout(200); after = pg.evaluate("[...document.querySelectorAll('.walkstep output')].map(e=>e.textContent)")
     ok('walking time changes only on its own crossing', after[:2] == before[:2] and after[2] != before[2], f'{before} -> {after}')
     # --- direction switch
     dirs = pg.evaluate("[...document.querySelectorAll('.x.open .opts button')].map(b=>b.textContent)")
@@ -72,7 +72,7 @@ with sync_playwright() as p:
     ok('the theme button cycles light, dark, then back to following the system', modes == ['light', 'dark', None], str(modes))
     # --- everything above is remembered
     pg.goto('about:blank'); pg.goto(URL); pg.wait_for_timeout(1000)
-    kept = pg.evaluate("[document.getElementById('memoText').value, [...document.querySelectorAll('.walk output')].map(e=>e.textContent)[2], document.querySelector('.x.open') === null]")
+    kept = pg.evaluate("[document.getElementById('memoText').value, [...document.querySelectorAll('.walkstep output')].map(e=>e.textContent)[2], document.querySelector('.x.open') === null]")
     ok('memo text, walking time and the closed cards survive closing the page', kept == ['識別證', after[2], True], str(kept))
     pg.tap('#memoClear'); pg.wait_for_timeout(200); ok('the clear button empties the memo', pg.evaluate("document.getElementById('memoText').value") == '' and pg.evaluate("localStorage.xw_memo") == '""')
     # --- pull to refresh

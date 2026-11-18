@@ -19,18 +19,18 @@
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
   --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de;
-  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12); --mark-gray:#595656; --brand:#00a3c7;
+  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12); --mark-gray:#595656; --brand:#00a3c7; --chip:rgba(0,0,0,.07);
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; color-scheme:dark } }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; --chip:rgba(255,255,255,.13); color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; color-scheme:dark }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; --chip:rgba(255,255,255,.13); color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 *{touch-action:manipulation}
@@ -90,7 +90,7 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 2px var(--brand)}
 .x.pin .secs,.x.pin .xsum b{color:var(--brand)}
 .x.pin .word{font-size:22px;letter-spacing:.02em}
-.x.pin .leave,.x.pin .opts,.x.pin .nexts button[aria-pressed="false"]{background:var(--bg)}
+.x.pin .info,.x.pin .opts{background:var(--bg)}
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
 .secs{font-family:var(--num);font-weight:800;font-size:clamp(72px,23vw,92px);line-height:1;font-variant-numeric:tabular-nums}
 .sub{font-size:14px;color:var(--fg)}
@@ -98,20 +98,21 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .strip i{position:absolute;top:0;bottom:0;left:0;border-radius:6px 0 0 6px;background:var(--go)}
 .strip u{position:absolute;top:-11px;bottom:-7px;width:9px;margin-left:-4.5px;border-radius:4.5px;background:linear-gradient(#e6e400,#00afd5);transform:skewX(-10deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .strip u::after{content:"";position:absolute;left:50%;top:-14px;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#e6e400}
-.leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px 8px 6px 14px;border-radius:14px;background:var(--pill);color:var(--fg);text-align:left}
-.leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* below the countdown: one panel, three rows, every row = label on the left, value or control on the right */
+.info{margin-top:12px;border-radius:14px;background:var(--pill);color:var(--fg);text-align:left}
+.irow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:4px 8px 4px 14px}
+.irow+.irow{border-top:1px solid var(--pill-line)}
+.irow .lbl{flex:none;font-size:13px;letter-spacing:0;color:var(--fg);opacity:.65}
+.leaveMsg{padding-right:6px;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .leaveMsg.go{color:var(--go)}
-.walk{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.walk .lbl{font-size:11px;color:var(--fg);opacity:.7}
-.walk .step{gap:2px}
-.walk button{min-width:40px;min-height:36px;padding:0;border-radius:9px;font-size:18px;border-color:var(--pill-line)}
-.walk output{min-width:3.4em;font-size:14px}
-.nextRow{display:flex;align-items:center;gap:8px;margin-top:8px;white-space:nowrap}
-.nextRow .lbl{flex:none;color:var(--fg);opacity:.7}
+.walkstep{gap:2px}
+.walkstep button{min-width:40px;min-height:34px;padding:0;border-radius:9px;font-size:18px;border-color:var(--pill-line)}
+.walkstep output{min-width:3.6em;font-size:15px}
+.nextRow{white-space:nowrap}
 .live{flex:none;min-height:30px;min-width:0;padding:0 10px;border:0;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12.5px;font-weight:700}
-.nexts{flex:1;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:1px}
+.nexts{flex:1;min-width:0;display:flex;gap:5px;margin-left:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:1px}
 .nexts::-webkit-scrollbar{display:none}
-.nexts button{flex:none;min-height:30px;min-width:0;padding:0 8px;border:0;border-radius:999px;background:var(--pill);color:var(--fg);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.nexts button{flex:none;min-height:30px;min-width:0;padding:0 8px;border:0;border-radius:999px;background:var(--chip);color:var(--fg);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
 .nexts button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 
 /* umbrella answer */
@@ -368,11 +369,14 @@ function build(){
     const s = document.createElement('section'); s.className = 'x off';
     s.innerHTML = '<div class="xhead" role="button" tabindex="0"><span class="xname"></span><span class="opts" hidden></span><span class="sp"></span><span class="xsum"><b></b><span></span></span></div>' +
       '<div class="xbody"><div class="word"></div><div class="secs"></div><div class="sub"></div><div class="strip"><i></i><u></u></div>' +
-      '<div class="leave"><b class="leaveMsg"></b><span class="walk"><span class="lbl">走到路口要</span><span class="step"><button class="dn" aria-label="減少 5 秒">−</button><output></output><button class="up" aria-label="增加 5 秒">＋</button></span></span></div>' +
-      '<div class="nextRow"><span class="lbl">之後可以過</span><button class="live" hidden>‹ 回到即時</button><span class="nexts"></span></div></div>';
+      '<div class="info">' +
+        '<div class="irow"><span class="lbl">何時出發</span><b class="leaveMsg"></b></div>' +
+        '<div class="irow"><span class="lbl">走到路口要</span><span class="step walkstep"><button class="dn" aria-label="減少 5 秒">−</button><output></output><button class="up" aria-label="增加 5 秒">＋</button></span></div>' +
+        '<div class="irow nextRow"><span class="lbl">之後可以過</span><button class="live" hidden>‹ 回到即時</button><span class="nexts"></span></div>' +
+      '</div></div>';
     const q = c => s.querySelector(c);
     x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
-            go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts'), lbl:q('.nextRow .lbl'), live:q('.live')};
+            go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walkstep output'), nexts:q('.nexts'), lbl:q('.nextRow .lbl'), live:q('.live')};
     /* 點某個之後的時刻＝改成對那一班倒數；再點一次或按「回到即時」就回來 */
     x.el.nexts.addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const v = +b.dataset.t; store.set('pin_'+x.id, Math.abs(pinOf(x, Date.now()/1000) - v) < 2 ? 0 : v); render(); });
     x.el.live.addEventListener('click', () => { store.set('pin_'+x.id, 0); render(); });
