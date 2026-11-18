@@ -82,12 +82,12 @@ p{margin:0;color:var(--muted);font-size:14px}
   <details id="wid">
     <summary>主畫面小工具</summary>
     <div>
-      <p>小工具顯示和上面一樣的燈號倒數，加一條未來 10 分鐘的時間軸（綠色是可以過的時段）。數字會自己倒數，不用打開任何東西。</p>
+      <p>小工具顯示一個會走的時鐘（含秒），和接下來幾次可以過的時鐘時間，例如「17:44:35–45:39」；中型以上多一條時間軸，綠色是可以過的時段。</p>
       <p>1. App Store 安裝免費的 Scriptable。<br>2. 按下面的按鈕複製程式碼，在 Scriptable 按右上「＋」貼上，取名「過馬路」。<br>3. 回主畫面長按空白處 → 加入 Scriptable 小工具 → 長按小工具「編輯」→ Script 選「過馬路」。</p>
       <button class="main" id="copyW">複製小工具程式碼</button>
       <p id="copyMsg" hidden></p>
       <textarea id="wOut" hidden readonly rows="6" style="width:100%;font:12px ui-monospace,monospace;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px"></textarea>
-      <p>時刻表會自動更新，不用重貼。程式碼會帶入你上面設定的「走到路口要幾秒」，改了秒數才需要重新複製貼上。系統每隔幾分鐘才重新整理小工具一次：倒數到 0 之後數字會往上跳，代表燈已經變了，這時看時間軸上的時鐘時間，或點小工具開啟頁面。中型小工具另外會顯示出發倒數；大型再多 30 分鐘時間軸和接下來 4 次可過的時刻。</p>
+      <p>時刻表會自動更新，不用重貼。程式碼會帶入你上面設定的「走到路口要幾秒」，改了秒數才需要重新複製貼上。要看秒數倒數，點小工具開啟這個頁面。系統每隔幾分鐘才重新整理小工具一次，所以小工具上只放時鐘時間，不放會過時的倒數。</p>
     </div>
   </details>
   <div id="src"></div>
@@ -131,13 +131,6 @@ function windows(t, horizon) {
 const now = Date.now() / 1000;
 const SPAN = 600;                                  // 圖表涵蓋未來 10 分鐘
 const wins = windows(now, 1900);
-const inWin = wins.length && wins[0][0] <= now;
-const change = wins.length ? (inWin ? wins[0][1] : wins[0][0]) : null;   // 下一次變燈
-const nextStart = wins.length ? (inWin ? (wins[1] || [null])[0] : wins[0][0]) : null;
-// 出發時刻：走 WALK 秒抵達時，還夠 CROSS 秒過完
-let depart = null;
-for (const [s, e] of wins) { const d = Math.max(now, s - WALK); if (d + WALK <= e - CROSS) { depart = d; break; } }
-
 const fam = config.widgetFamily || "small";
 const big = fam === "large" || fam === "extraLarge";
 const lock = fam.startsWith("accessory"), wide = fam === "medium" || big;
@@ -145,16 +138,23 @@ const w = new ListWidget();
 const fg = lock ? Color.white() : Color.dynamic(new Color("#14201c"), new Color("#e9f0ed"));
 const dim = lock ? Color.white() : Color.dynamic(new Color("#5d6b66"), new Color("#93a39d"));
 const GO = "#1fae7a", WAIT = "#d9603b";
-const stateColor = lock ? Color.white() : new Color(inWin ? GO : WAIT);
+const goColor = lock ? Color.white() : Color.dynamic(new Color("#0a7d55"), new Color("#3fd69b"));
 if (!lock) { w.backgroundColor = Color.dynamic(new Color("#ffffff"), new Color("#151d1a")); w.setPadding(12, 14, 10, 14); }
 w.url = "__URL__";
 
 function label(parent, s, size, color) { const x = parent.addText(s); x.font = Font.mediumSystemFont(size); x.textColor = color || dim; x.lineLimit = 1; return x; }
-function timer(parent, sec, size, color) {
-  const x = parent.addDate(new Date(sec * 1000)); x.applyTimerStyle();
-  x.font = Font.boldRoundedSystemFont(size); x.textColor = color; x.minimumScaleFactor = 0.5; x.lineLimit = 1; return x;
-}
 function hhmm(sec, n) { const d = new Date((sec + 8 * 3600) * 1000); return d.toISOString().substr(11, n || 5); }
+// 會走的時鐘：系統的計時文字從今天 0 點起算，顯示出來就是現在幾點幾分幾秒，永遠不會過時
+function clock(parent, size) {
+  const mid = new Date(); mid.setHours(0, 0, 0, 0);
+  const x = parent.addDate(mid); x.applyTimerStyle();
+  x.font = Font.boldRoundedSystemFont(size); x.textColor = fg; x.minimumScaleFactor = 0.5; x.lineLimit = 1; return x;
+}
+// 可以過的時段，寫成時鐘時間「17:44:35–45:39」
+function range(parent, s, e, size) {
+  const x = parent.addText(hhmm(s, 8) + "–" + hhmm(e, 8).substr(3));
+  x.font = Font.boldRoundedSystemFont(size); x.textColor = goColor; x.minimumScaleFactor = 0.6; x.lineLimit = 1; return x;
+}
 
 // 時間軸圖：紅底＝先等等，綠塊＝可以過，下方標時鐘時間
 function chart(width, height, t0) {
@@ -173,44 +173,45 @@ function chart(width, height, t0) {
   return dc.getImage();
 }
 
-if (change === null) {
+if (!wins.length) {
   label(w, "這個時段沒有時刻表", 13);
 } else if (lock) {
-  label(w, inWin ? "可以過，還剩" : "先等等，還要", 12, fg);
-  timer(w, change, fam === "accessoryRectangular" ? 26 : 14, fg);
+  clock(w, 15);
+  for (const [s, e] of wins.slice(0, 2)) range(w, s, e, 13);
 } else if (!wide) {
-  label(w, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
-  timer(w, change, 40, stateColor);
-  w.addSpacer();
-  const img = w.addImage(chart(130, 34)); img.imageSize = new Size(130, 34);
+  clock(w, 26);
+  w.addSpacer(4);
+  label(w, "可以過", 11);
+  for (const [s, e] of wins.slice(0, 4)) range(w, s, e, 15);
 } else {
   const top = w.addStack(); top.layoutHorizontally();
   const L = top.addStack(); L.layoutVertically();
-  label(L, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
-  timer(L, change, 44, stateColor);
+  label(L, "現在", 11);
+  clock(L, 34);
   top.addSpacer();
   const R = top.addStack(); R.layoutVertically();
-  if (inWin && nextStart) { label(R, "下一次可過", 11); timer(R, nextStart, 18, fg); }
-  if (depart !== null) { label(R, depart - now < 1 ? "現在出發剛好" : "出發倒數", 11); if (depart - now >= 1) timer(R, depart, 18, fg); }
+  label(R, "可以過", 11);
+  for (const [s, e] of wins.slice(0, 3)) range(R, s, e, 15);
   w.addSpacer();
   const img = w.addImage(chart(300, 40)); img.imageSize = new Size(300, 40);
   if (big) {
     for (const k of [1, 2]) { w.addSpacer(4); const im = w.addImage(chart(300, 40, now + k * SPAN)); im.imageSize = new Size(300, 40); }
     w.addSpacer(8);
-    label(w, "接下來可以過的時段", 11);
-    for (const [s, e] of wins.filter(x => x[0] > now).slice(0, 4)) {
-      const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
-      label(row, hhmm(s, 8) + " 起 " + Math.round(e - s) + " 秒", 14, fg);
+    label(w, "之後可以過", 11);
+    const more = wins.slice(3, 9);
+    for (let i = 0; i < more.length; i += 2) {
+      const row = w.addStack(); row.layoutHorizontally();
+      range(row, more[i][0], more[i][1], 15);
       row.addSpacer();
-      timer(row, s, 14, dim);
+      if (more[i + 1]) range(row, more[i + 1][0], more[i + 1][1], 15);
     }
     w.addSpacer(6);
     const f = bandFor(now);
     if (f) label(w, "一輪 " + f.b.cycle + " 秒，可過 " + f.b.red + " 秒；" + hhmm(f.end) + " 換時制", 11);
   }
 }
-// 請系統在下一次變燈後重新整理（系統不保證準時；過時的話數字會往上跳，圖表上的時鐘時間仍然正確）
-w.refreshAfterDate = new Date(((change || now) + 1) * 1000);
+// 請系統在第一個時段結束後重新整理；系統晚來也沒關係，上面顯示的都是時鐘時間
+w.refreshAfterDate = new Date((wins.length ? wins[0][1] : now + 600) * 1000);
 if (config.runsInWidget) Script.setWidget(w); else if (big) await w.presentLarge(); else if (wide) await w.presentMedium(); else await w.presentSmall();
 Script.complete();
 </script>
