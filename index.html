@@ -26,6 +26,8 @@
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10; --ink-btn:#e9f0ed; --ink-btn-fg:#0c1210; color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+html,body,button,summary,a,input{touch-action:manipulation}
+button{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 [hidden]{display:none!important}
 body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:16px;line-height:1.5;
   padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
