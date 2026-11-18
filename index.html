@@ -94,7 +94,10 @@ p{margin:0;color:var(--muted);font-size:14px}
         <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
+      <div class="row"><label for="cwaKey">氣象署金鑰</label>
+        <span class="step"><input id="cwaKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CWA-…" style="font:inherit;width:11em;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)"><button id="cwaSave">儲存</button></span></div>
       <button id="clear">清除我的對時，改用實測時刻表</button>
+      <p>填了氣象署金鑰，帶傘提示會改用附近雨量站的實測雨量；沒填就只用預報。金鑰只存在這支手機。</p>
       <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
     </div>
   </details>
@@ -205,24 +208,44 @@ function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'vi
 document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
 /* 要不要帶傘：路口座標的現在雨量、未來一小時每 15 分鐘雨量與降雨機率（Open-Meteo 預報） */
 const WX = 'https://api.open-meteo.com/v1/forecast?latitude=25.053&longitude=121.519&current=precipitation,weather_code&minutely_15=precipitation&forecast_minutely_15=5&hourly=precipitation_probability&forecast_hours=2&timezone=Asia%2FTaipei';
-function umbrella(d){
+/* 實測：氣象署雨量站，離路口最近的三站（太平國小 1.2 km、臺北 1.8 km、建國 2.4 km）。金鑰只存在這支手機 */
+const GAUGE = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0002-001?format=JSON&StationId=A1A9X0,466920,A1AB50&Authorization=';
+function gauge(j){
+  let best = null;
+  for (const s of j.records.Station){
+    const mm = parseFloat(s.RainfallElement.Past10Min.Precipitation);
+    if (!(mm >= 0)) continue;                                   // 負值＝儀器缺測
+    const g = {mm, name:s.StationName, time:s.ObsTime.DateTime.substr(11,5), at:Date.parse(s.ObsTime.DateTime)/1000};
+    if (!best || g.mm > best.mm || (g.mm === best.mm && s.StationId === 'A1A9X0')) best = g;
+  }
+  return best;
+}
+function umbrella(d, g, t){
   const c = d.current, q = d.minutely_15, code = c.weather_code;
   const prob = Math.max.apply(null, d.hourly.precipitation_probability.filter(v => v !== null).concat(0));
-  const wetNow = c.precipitation > 0 || q.precipitation[0] > 0 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  const fcNow = c.precipitation > 0 || q.precipitation[0] > 0 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
   const i = q.precipitation.findIndex((v, k) => k > 0 && v > 0);
-  if (wetNow) return {wet:true, msg:'正在下雨，帶傘', prob};
-  if (i > 0) return {wet:true, msg:q.time[i].substr(11,5)+' 左右開始下雨，帶傘', prob};
-  if (prob >= 40) return {wet:true, msg:'可能下雨，建議帶傘', prob};
-  return {wet:false, msg:'不用帶傘', prob};
+  const fresh = g && t - g.at < 1800;                           // 測站資料超過 30 分鐘就不採用
+  if (fresh && g.mm > 0) return {wet:true, msg:'正在下雨，帶傘', prob, g};
+  if (!fresh && fcNow) return {wet:true, msg:'正在下雨，帶傘', prob, g:null};
+  if (i > 0) return {wet:true, msg:q.time[i].substr(11,5)+' 左右開始下雨，帶傘', prob, g:fresh ? g : null};
+  if (prob >= 40 || fcNow) return {wet:true, msg:'可能下雨，建議帶傘', prob, g:fresh ? g : null};
+  return {wet:false, msg:'不用帶傘', prob, g:fresh ? g : null};
 }
 function rain(){
-  fetch(WX).then(r => r.json()).then(d => {
-    const u = umbrella(d);
+  const key = store.get('cwaKey', '');
+  const fc = fetch(WX).then(r => r.json());
+  const ga = key ? fetch(GAUGE + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(gauge).catch(() => 'fail') : Promise.resolve(null);
+  Promise.all([fc, ga]).then(([d, g]) => {
+    const u = umbrella(d, g === 'fail' ? null : g, Date.now()/1000);
     $('rainMsg').textContent = u.msg; $('rainMsg').className = u.wet ? 'wet' : '';
-    $('rainSub').textContent = '一小時內降雨機率 '+u.prob+'%（預報，'+hms(Date.now()/1000).substr(0,5)+' 更新）';
+    const measured = u.g ? u.g.name+'測站 '+u.g.time+' 前 10 分鐘雨量 '+u.g.mm+' mm。' : (g === 'fail' ? '雨量站查不到（金鑰可能有誤）。' : '');
+    $('rainSub').textContent = measured+'一小時內降雨機率 '+u.prob+'%（預報）';
   }).catch(() => { $('rainMsg').textContent = '查不到天氣'; $('rainMsg').className = ''; $('rainSub').textContent = '沒有網路或天氣服務沒回應'; });
 }
-rain(); setInterval(rain, 600000);
+$('cwaKey').value = store.get('cwaKey', '');
+$('cwaSave').addEventListener('click', () => { store.set('cwaKey', $('cwaKey').value.trim()); $('rainMsg').textContent = '查詢天氣中'; rain(); });
+rain(); setInterval(rain, 300000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
 labels(); render(); setInterval(render, 250);
 </script>
