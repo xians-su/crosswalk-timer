@@ -37,7 +37,7 @@ html{-webkit-text-size-adjust:100%}
 button{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 [hidden]{display:none!important}
 body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:15px;line-height:1.45;
-  padding-top:calc(env(safe-area-inset-top,0px) + 20px);padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
+  padding-top:calc(env(safe-area-inset-top,0px) + 30px);padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 p{margin:0;color:var(--muted);font-size:13px}
@@ -246,6 +246,8 @@ footer span:nth-child(odd){opacity:.8}
       <p>「走到路口要」幾秒，在每個路口展開後的卡片上調。</p>
 
       <h3 class="sec">顯示</h3>
+      <div class="row"><span>螢幕保持亮著（較耗電）</span>
+        <button id="awakeOn" class="sw" role="switch" aria-checked="false" aria-label="螢幕保持亮著"><i></i></button></div>
       <div class="row"><span>Memo 備忘欄</span>
         <button id="memoOn" class="sw" role="switch" aria-checked="false" aria-label="顯示 Memo"><i></i></button></div>
 
@@ -296,7 +298,7 @@ const store = {
 };
 const SITE = '';   // 時刻表與頁面放在同一個網址下
 function loadSchedule(){
-  fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
+  fetch(SITE + 'schedule.json', {cache:'no-cache'}).then(r => r.json()).then(s => {
     if (s.crossings && s.crossings.length){ DATA = s; store.set('sched2', s); build(); }
   }).catch(() => { const c = store.get('sched2', null); if (c && c.crossings && c.crossings.length){ DATA = c; build(); } });
 }
@@ -484,9 +486,17 @@ function applyTheme(){
 $('theme').addEventListener('click', () => { theme = {auto:'light', light:'dark', dark:'auto'}[theme]; store.set('theme', theme); applyTheme(); });
 applyTheme();
 build(); loadSchedule();
-/* 放在桌上時讓螢幕保持亮著（系統不允許時就略過） */
-function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(()=>{}); }
-document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});   // 沒網路時也打得開
+/* 螢幕保持亮著很耗電，預設關閉；要立在桌上當看板時到 Setting 打開（系統不允許時就略過） */
+let wake = null;
+function keepAwake(){
+  const on = store.get('awake', false) === true; $('awakeOn').setAttribute('aria-checked', on ? 'true' : 'false');
+  if (on && navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').then(w => { wake = w; }).catch(() => {});
+  else if (!on && wake){ wake.release().catch(() => {}); wake = null; }
+}
+document.addEventListener('visibilitychange', keepAwake);
+$('awakeOn').addEventListener('click', () => { store.set('awake', !(store.get('awake', false) === true)); keepAwake(); });
+keepAwake();
 /* 要不要帶傘：路口座標的現在雨量、未來一小時每 15 分鐘雨量與降雨機率（Open-Meteo 預報） */
 const WX = 'https://api.open-meteo.com/v1/forecast?latitude=25.053&longitude=121.519&current=precipitation,weather_code,temperature_2m,apparent_temperature,uv_index,wind_speed_10m,relative_humidity_2m&wind_speed_unit=ms&minutely_15=precipitation&forecast_minutely_15=5&hourly=precipitation_probability&forecast_hours=2&timezone=Asia%2FTaipei';
 /* 實測：氣象署雨量站，離路口最近的三站（太平國小 1.2 km、臺北 1.8 km、建國 2.4 km）。金鑰只存在這支手機 */
@@ -519,21 +529,28 @@ const GRID = {nowcast:'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Forec
 const GX = 441, IX = Math.round((121.5106 - 118) / 0.0125), IY = Math.round((25.0547 - 20) / 0.0125);
 function gridHead(buf){
   const txt = new TextDecoder().decode(buf), i = txt.indexOf('"content"', txt.indexOf('"contents"'));
-  const j = txt.indexOf('"', txt.indexOf(':', i)) + 1, dt = /"DateTime":\s*"([^"]+)"/.exec(txt);
-  if (i < 0 || j < 1 || !dt) throw new Error('grid header');
-  return {start:new TextEncoder().encode(txt.slice(0, j)).length, at:Date.parse(dt[1])/1000, time:dt[1].substr(11,5)};
+  const j = txt.indexOf('"', txt.indexOf(':', i)) + 1;
+  if (i < 0 || j < 1) throw new Error('grid header');
+  return new TextEncoder().encode(txt.slice(0, j)).length;      // 格點資料從第幾個位元組開始
 }
-function gridMax(text){
-  const tok = text.split(','); let mx = 0;
-  for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++){ const v = parseFloat(tok[dy*GX + dx]); if (!isFinite(v)) throw new Error('grid value'); if (v > mx) mx = v; }   // 負值＝無資料或無降雨
-  return mx;
-}
-function gridAt(url){
-  const part = (a, b) => fetch(url, {headers:{Range:'bytes='+a+'-'+b}, cache:'no-store'}).then(r => r.status === 206 ? r.arrayBuffer() : Promise.reject(r.status));
-  return part(0, 4095).then(gridHead).then(hd => {
-    const first = (IY-1)*GX + (IX-1), last = (IY+1)*GX + (IX+1);
-    return part(hd.start + first*11, hd.start + last*11 + 9).then(b => ({mm:gridMax(new TextDecoder().decode(b)), at:hd.at, time:hd.time}));
-  }).catch(() => null);
+/* 每一格固定佔 11 個位元組，所以只抓路口周邊 3×3 格：每列一次 32 位元組的小請求。
+   檔頭長度會記在手機裡；抓回來的格式不對（代表檔頭長度變了）才重新讀一次檔頭。資料時間用回應的 Last-Modified */
+function gridAt(url, name, dflt){
+  const part = (a, b) => fetch(url, {headers:{Range:'bytes='+a+'-'+b}, cache:'no-store'}).then(r => r.status === 206 ? r : Promise.reject(r.status));
+  const rows = start => Promise.all([-1, 0, 1].map(dy => { const o = start + ((IY + dy)*GX + (IX - 1))*11; return part(o, o + 31).then(r => r.text().then(tx => ({tx, lm:Date.parse(r.headers.get('Last-Modified') || '')/1000}))); }));
+  const read = rs => {
+    let mx = 0;
+    for (const r of rs) for (const tok of r.tx.split(',').map(s => s.trim()).filter(Boolean)){
+      if (!/^-?\d\.\d{3}E[+-]\d\d$/.test(tok)) throw new Error('grid format');
+      const v = parseFloat(tok); if (v > mx) mx = v;                // 負值＝無資料或無降雨
+    }
+    const at = rs[0].lm > 0 ? rs[0].lm : Date.now()/1000;
+    return {mm:mx, at, time:hms(at).substr(0, 5)};
+  };
+  const start = store.get('grid_'+name, dflt);
+  return rows(start).then(read).catch(() =>
+    part(0, 4095).then(r => r.arrayBuffer()).then(gridHead).then(s => { store.set('grid_'+name, s); return rows(s).then(read); })
+  ).catch(() => null);
 }
 /* 一小時雨量換成口語（分界是自訂的，不是氣象署的定義）：不到 0.5 毫米毛毛雨、5 以下小雨、15 以下中雨、以上大雨 */
 const rainWord = mm => mm < 0.5 ? '毛毛雨' : mm < 5 ? '小雨' : mm < 15 ? '中雨' : '大雨';
@@ -564,7 +581,7 @@ const CWA = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/';
 const CWA_Q = {
   warn: 'W-C0033-001?format=JSON&locationName=' + encodeURIComponent('臺北市'),
   obs: 'O-A0003-001?format=JSON&StationId=466920',
-  fc: 'F-D0047-061?format=JSON&LocationName=' + encodeURIComponent('大同區')
+  fc: 'F-D0047-061?format=JSON&LocationName=' + encodeURIComponent('大同區') + '&ElementName=' + encodeURIComponent('3小時降雨機率,天氣現象,體感溫度')
 };
 const num = v => { const n = parseFloat(v); return n > -90 ? n : null; };   // -99 等負值＝缺測
 const uvLevel = u => u >= 11 ? '危險級' : u >= 8 ? '過量級' : u >= 6 ? '高量級' : u >= 3 ? '中量級' : '低量級';   // 氣象署紫外線指數分級
@@ -622,7 +639,7 @@ function showRain(v){
   }
 }
 function rainForecastOnly(note, radar){
-  fetch(WX).then(r => r.json()).then(d => {
+  keep('wx', 540000, () => fetch(WX).then(r => r.json())).then(d => {
     const t = Date.now()/1000, u = umbrella(d, null, t), c = d.current, r1 = x => Math.round(x*10)/10;
     showRain(verdict({wet:u.wet, msg:u.msg, sub:note || '', warn:'', rainingNow:false, brief:{feel:r1(c.apparent_temperature), uv:c.uv_index, wind:c.wind_speed_10m}, cells:[
       {k:'降雨機率', v:u.prob+'%', n:'一小時內・模型'}, {k:'紫外線', v:String(r1(c.uv_index)), n:uvLevel(c.uv_index)},
@@ -646,13 +663,18 @@ function camStart(){
 $('cam').addEventListener('error', camFail);
 $('camBox').addEventListener('toggle', () => $('camBox').open ? camStart() : camStop());
 document.addEventListener('visibilitychange', () => { if ($('camBox').open) document.visibilityState === 'visible' ? camStart() : camStop(); });
+const KEEP = {}, keep = (k, ms, fn) => {                       // 變動慢的資料 30 分鐘內重複使用，不重抓
+  const c = KEEP[k]; if (c && Date.now() - c.t < ms) return Promise.resolve(c.v);
+  return fn().then(v => { if (v) KEEP[k] = {t:Date.now(), v}; return v; });
+};
+let lastRain = 0;
 function rain(){
-  loadRadar();
+  lastRain = Date.now(); loadRadar();
   const key = store.get('cwaKey', '');
-  const radarP = Promise.all([gridAt(GRID.nowcast), gridAt(GRID.past), airP()]).then(([nowcast, past, air]) => { AIR = air; return {nowcast, past}; });
+  const radarP = Promise.all([gridAt(GRID.nowcast, 'nowcast', 1326), gridAt(GRID.past, 'past', 1399), keep('air', 1800000, airP)]).then(([nowcast, past, air]) => { AIR = air; return {nowcast, past}; });
   if (!key) return radarP.then(radar => rainForecastOnly('', radar));
   const get = u => fetch(u + '&Authorization=' + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => null);
-  Promise.all([get(GAUGE.replace('&Authorization=', '')), get(CWA + CWA_Q.warn), get(CWA + CWA_Q.obs), get(CWA + CWA_Q.fc), radarP]).then(([gj, w, o, f, radar]) => {
+  Promise.all([get(GAUGE.replace('&Authorization=', '')), keep('warn', 900000, () => get(CWA + CWA_Q.warn)), get(CWA + CWA_Q.obs), keep('fc', 1800000, () => get(CWA + CWA_Q.fc)), radarP]).then(([gj, w, o, f, radar]) => {
     if (!gj && !w && !o && !f) return rainForecastOnly('氣象署查不到（金鑰可能有誤）。', radar);
     let g = null; try { g = gj && gauge(gj); } catch (e) {}
     const t = Date.now()/1000; showRain(verdict(cwaView(g, w, o, f, t), radar, t));
@@ -660,8 +682,9 @@ function rain(){
 }
 function takeKey(){ const m = location.hash.match(/^#cwa=(CWA-[A-Za-z0-9-]+)$/); if (!m) return false; store.set('cwaKey', m[1]); try { history.replaceState(null, '', location.pathname); } catch (e) { location.hash = ''; } return true; }
 takeKey(); window.addEventListener('hashchange', () => { if (takeKey()) rain(); });
-rain(); setInterval(rain, 300000);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
+/* 氣象資料每 10 分鐘才更新一次，所以每 10 分鐘查一次；頁面在背景時不查，切回來時超過 5 分鐘沒查才補查 */
+rain(); setInterval(() => { if (document.visibilityState === 'visible') rain(); }, 600000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastRain > 300000) rain(); });
 /* 加到主畫面後 iPhone 沒有內建的下拉重整，這裡自己做：在頁面最上方往下拉，內容跟著手指移動（帶阻尼），
    上方出現一個會轉的圖示；拉過門檻圖示變色，放開就重新整理，沒拉夠就彈回去 */
 const PTR = {el:$('ptr'), main:document.querySelector('main'), x:0, y:0, on:null, d:0, MAX:86, GO:58};
@@ -698,7 +721,8 @@ function ptrEnd(){
 }
 addEventListener('touchend', ptrEnd); addEventListener('touchcancel', () => { PTR.d = 0; ptrEnd(); });
 /* 從背景回到頁面時，順便抓一次最新時刻表 */
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSchedule(); });
+let lastSched = Date.now();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - lastSched > 1800000){ lastSched = Date.now(); loadSchedule(); } });
 /* 有些 iPhone 版本在一般區域連點兩下仍會放大：第二下若落在非按鈕處就擋掉 */
 let lastTap = 0;
 document.addEventListener('touchend', e => {
@@ -717,7 +741,10 @@ function memoShow(){ const on = store.get('memoOn', false) === true; $('memo').h
 $('memoOn').addEventListener('click', () => { store.set('memoOn', !(store.get('memoOn', false) === true)); memoShow(); });
 memoShow();
 addEventListener('resize', memoFit);
-setInterval(render, 250);
+/* 每秒重畫一次（對齊整秒），頁面在背景時完全不畫 */
+function tick(){ if (document.visibilityState === 'visible') render(); setTimeout(tick, 1000 - Date.now() % 1000 + 15); }
+tick();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
 </script>
 </body>
 </html>
