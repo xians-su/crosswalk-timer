@@ -122,7 +122,19 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #wxLine{color:var(--muted);font-size:12.5px;line-height:1.4}
 #rainMsg.wet,#rainNote.wet,#wxLine.wet{color:var(--wet)}
 
-/* memo: typed by the viewer, stored only in their own browser */
+/* drag-to-reorder list of crossings */
+#orderList{display:flex;flex-direction:column;gap:6px}
+.orow{display:flex;align-items:center;gap:4px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font-weight:600}
+.orow.drag{border-color:var(--brand);box-shadow:0 4px 14px rgba(0,0,0,.18);position:relative;z-index:2}
+.grip{touch-action:none;cursor:grab;display:grid;place-items:center;width:44px;height:44px;font-size:20px;color:var(--muted);user-select:none;-webkit-user-select:none}
+
+/* on/off switch */
+.sw{position:relative;min-width:52px;width:52px;min-height:32px;height:32px;padding:0;border:0;border-radius:999px;background:var(--line)}
+.sw i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.sw[aria-checked="true"]{background:var(--brand)}
+.sw[aria-checked="true"] i{transform:translateX(20px)}
+
+/* memo: typed by the viewer, stored only in their own browser; off until switched on in settings */
 #memo{position:relative;min-height:104px;margin-top:14px;padding:10px 16px 11px;border-radius:20px;background:none;border:1.5px dashed var(--line)}   /* a note pad, not a status row: no fill, dashed outline */
 #memoClear{position:absolute;top:6px;right:8px;min-width:32px;min-height:32px;padding:0;border:0;border-radius:50%;color:var(--muted);display:grid;place-items:center}
 #memoClear svg{width:16px;height:16px;display:block}
@@ -199,7 +211,7 @@ footer span:nth-child(odd){opacity:.8}
 
   <div id="rainSub" hidden></div>
 
-  <section id="memo" class="card">
+  <section id="memo" class="card" hidden>
     <label class="lbl" for="memoText">Memo</label>
     <button id="memoClear" aria-label="清除 Memo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
     <textarea id="memoText" rows="2" placeholder="點一下輸入" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
@@ -213,6 +225,10 @@ footer span:nth-child(odd){opacity:.8}
     <div>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
+      <div class="row"><span>路口順序</span><span class="lbl">按住 ≡ 上下拖</span></div>
+      <div id="orderList"></div>
+      <div class="row"><span>顯示 Memo（自己的備忘欄）</span>
+        <button id="memoOn" class="sw" role="switch" aria-checked="false" aria-label="顯示 Memo"><i></i></button></div>
       <p>以下套用在：<b id="selName"></b>（展開哪個路口就調哪個）</p>
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
@@ -322,6 +338,8 @@ const hms = t => new Date((t+8*3600)*1000).toISOString().substr(11,8);
 
 /* 每個路口一張卡片：展開的那張是大字版，其餘收成一行 */
 function build(){
+  const ord = store.get('order', []), rank = x => { const i = ord.indexOf(x.id); return i < 0 ? 99 : i; };
+  DATA.crossings.sort((a, b) => rank(a) - rank(b));        // 使用者自訂的順序；沒排過的維持原順序排在後面
   const box = $('xs'); box.textContent = '';
   if (sel !== '' && !DATA.crossings.find(x => x.id === sel)) sel = DATA.crossings.length ? DATA.crossings[0].id : '';   // '' ＝ 全部收合
   for (const x of DATA.crossings){
@@ -350,8 +368,33 @@ function build(){
     q('.dn').addEventListener('click', () => step(-5)); q('.up').addEventListener('click', () => step(5));
     box.appendChild(s);
   }
+  orderPaint();
   $('srcX').textContent = DATA.crossings.map(x => x.name + '＝' + x.full + '（' + x.code + '）').join('；');
   labels(); render();
+}
+/* 設定裡的路口順序：按住 ≡ 上下拖，放開後卡片照新順序排 */
+function orderPaint(){
+  const list = $('orderList'); list.textContent = '';
+  for (const x of DATA.crossings){
+    const row = document.createElement('div'); row.className = 'orow'; row.dataset.id = x.id;
+    const grip = document.createElement('span'); grip.className = 'grip'; grip.textContent = '≡'; grip.setAttribute('aria-label', '拖曳調整 ' + x.name + ' 的順序');
+    const name = document.createElement('span'); name.textContent = x.name;
+    row.append(grip, name); list.appendChild(row);
+    grip.addEventListener('pointerdown', ev => {
+      ev.preventDefault(); grip.setPointerCapture(ev.pointerId); row.classList.add('drag');
+      const move = e => {                                  // 指標越過鄰居的中線就換位
+        const prev = row.previousElementSibling, next = row.nextElementSibling;
+        if (prev){ const r = prev.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2){ list.insertBefore(prev, row.nextSibling); return; } }   // 搬鄰居、不搬自己，拖曳才不會中斷
+        if (next){ const r = next.getBoundingClientRect(); if (e.clientY > r.top + r.height / 2) list.insertBefore(next, row); }
+      };
+      const done = () => {
+        grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', done); grip.removeEventListener('pointercancel', done);
+        row.classList.remove('drag'); store.set('order', [...list.children].map(r => r.dataset.id)); build();
+      };
+      grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', done); grip.addEventListener('pointercancel', done);
+    });
+    grip.addEventListener('touchstart', ev => ev.stopPropagation(), {passive:true});   // 不要觸發下拉重整
+  }
 }
 function render(){
   const t = Date.now()/1000;
@@ -650,6 +693,10 @@ const memoSync = () => { $('memoClear').hidden = !memo.value; memoFit(); };
 memo.value = store.get('memo', ''); memoSync();
 memo.addEventListener('input', () => { store.set('memo', memo.value); memoSync(); });
 $('memoClear').addEventListener('click', () => { memo.value = ''; store.set('memo', ''); memoSync(); });
+/* Memo 預設關閉，在「設定與校正」裡打開；關掉時內容仍留著 */
+function memoShow(){ const on = store.get('memoOn', false) === true; $('memo').hidden = !on; $('memoOn').setAttribute('aria-checked', on ? 'true' : 'false'); if (on) memoSync(); }
+$('memoOn').addEventListener('click', () => { store.set('memoOn', !(store.get('memoOn', false) === true)); memoShow(); });
+memoShow();
 addEventListener('resize', memoFit);
 setInterval(render, 250);
 </script>
