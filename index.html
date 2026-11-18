@@ -66,8 +66,11 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 .x.open .xhead::after{transform:rotate(45deg);margin:0 4px 5px 4px}
 .x.open .xsum,.x:not(.open) .xbody{display:none}
 .xbody{padding:0 18px 16px;text-align:center}
-.opts{display:flex;gap:4px;padding:3px;margin:2px 0 8px;border-radius:12px;background:var(--pill)}
-.opts button{flex:1;min-height:34px;min-width:0;padding:0 6px;border:0;border-radius:9px;font-size:13px;color:var(--fg);opacity:.7;background:none}
+.x{position:relative}
+.opts{position:absolute;top:8px;display:flex;gap:2px;padding:2px;border-radius:9px;background:var(--pill)}
+.x:not(.open) .opts{display:none}
+.x.open[data-opts] .xname small{display:none}
+.opts button{min-height:28px;min-width:0;padding:0 8px;border:0;border-radius:7px;font-size:12px;color:var(--fg);opacity:.7;background:none}
 .opts button[aria-pressed="true"]{background:var(--panel);opacity:1;font-weight:700}
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
 .secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:1;font-variant-numeric:tabular-nums}
@@ -254,16 +257,17 @@ function build(){
   for (const x of DATA.crossings){
     const s = document.createElement('section'); s.className = 'x off';
     s.innerHTML = '<button class="xhead"><span class="xname"></span><span class="xsum"><b></b><span></span></span></button>' +
-      '<div class="xbody"><div class="opts" hidden></div><div class="word"></div><div class="secs"></div><div class="sub"></div><div class="strip"><i></i><u></u></div>' +
+      '<div class="opts" hidden></div><div class="xbody"><div class="word"></div><div class="secs"></div><div class="sub"></div><div class="strip"><i></i><u></u></div>' +
       '<div class="leave"><b class="leaveMsg"></b><span class="walk"><span class="lbl">走到路口要</span><span class="step"><button class="dn" aria-label="減少 5 秒">−</button><output></output><button class="up" aria-label="增加 5 秒">＋</button></span></span></div>' +
       '<div class="nextRow"><span class="lbl">之後可以過</span><span class="nexts"></span></div></div>';
     const q = c => s.querySelector(c);
     x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
             go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts')};
-    q('.xname').textContent = x.name; const dirEl = document.createElement('small'); q('.xname').appendChild(dirEl);
+    const nm = document.createElement('span'); nm.textContent = x.name; q('.xname').appendChild(nm); const dirEl = document.createElement('small'); q('.xname').appendChild(dirEl);
     const paint = () => { dirEl.textContent = dirOf(x) || ''; s.querySelectorAll('.opts button').forEach((b, i) => b.setAttribute('aria-pressed', i === optOf(x) ? 'true' : 'false')); };
     if (x.opts){                                   // 同一個路口有不同的橫越方向：展開後可切換，會記住
-      const box = q('.opts'); box.hidden = false;
+      const box = q('.opts'); box.hidden = false; s.dataset.opts = '1';
+      requestAnimationFrame(() => { box.style.left = (nm.offsetLeft + nm.offsetWidth + 8) + 'px'; });   // 接在路口名稱後面，同一行
       x.opts.forEach((o, i) => { const b = document.createElement('button'); b.textContent = o.dir; b.addEventListener('click', () => { store.set('opt_'+x.id, i); store.set('manual_'+x.id, null); paint(); labels(); render(); }); box.appendChild(b); });
     }
     paint();
