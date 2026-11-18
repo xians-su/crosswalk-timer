@@ -44,6 +44,10 @@ header b{color:var(--fg);font-weight:600}
 #leave{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
 #leaveMsg{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 #leaveMsg.go{color:var(--go)}
+#rain{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+#rainMsg{font-size:22px;font-weight:700}
+#rainMsg.wet{color:var(--wait)}
+#rainSub{color:var(--muted);font-size:14px}
 #nexts{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:15px}
 .step{display:flex;align-items:center;gap:6px}
@@ -75,6 +79,8 @@ p{margin:0;color:var(--muted);font-size:14px}
       <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
     <div class="row"><span>之後可以過</span><span id="nexts"></span></div>
   </section>
+
+  <section id="rain"><div id="rainMsg">查詢天氣中</div><div id="rainSub"></div></section>
 
   <details id="adv">
     <summary>校正</summary>
@@ -197,6 +203,27 @@ bind('clear', () => { manual = null; store.set('manual', null); nudge = 0; store
 /* 放在桌上時讓螢幕保持亮著（系統不允許時就略過） */
 function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(()=>{}); }
 document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
+/* 要不要帶傘：路口座標的現在雨量、未來一小時每 15 分鐘雨量與降雨機率（Open-Meteo 預報） */
+const WX = 'https://api.open-meteo.com/v1/forecast?latitude=25.053&longitude=121.519&current=precipitation,weather_code&minutely_15=precipitation&forecast_minutely_15=5&hourly=precipitation_probability&forecast_hours=2&timezone=Asia%2FTaipei';
+function umbrella(d){
+  const c = d.current, q = d.minutely_15, code = c.weather_code;
+  const prob = Math.max.apply(null, d.hourly.precipitation_probability.filter(v => v !== null).concat(0));
+  const wetNow = c.precipitation > 0 || q.precipitation[0] > 0 || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  const i = q.precipitation.findIndex((v, k) => k > 0 && v > 0);
+  if (wetNow) return {wet:true, msg:'正在下雨，帶傘', prob};
+  if (i > 0) return {wet:true, msg:q.time[i].substr(11,5)+' 左右開始下雨，帶傘', prob};
+  if (prob >= 40) return {wet:true, msg:'可能下雨，建議帶傘', prob};
+  return {wet:false, msg:'不用帶傘', prob};
+}
+function rain(){
+  fetch(WX).then(r => r.json()).then(d => {
+    const u = umbrella(d);
+    $('rainMsg').textContent = u.msg; $('rainMsg').className = u.wet ? 'wet' : '';
+    $('rainSub').textContent = '一小時內降雨機率 '+u.prob+'%（預報，'+hms(Date.now()/1000).substr(0,5)+' 更新）';
+  }).catch(() => { $('rainMsg').textContent = '查不到天氣'; $('rainMsg').className = ''; $('rainSub').textContent = '沒有網路或天氣服務沒回應'; });
+}
+rain(); setInterval(rain, 600000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
 labels(); render(); setInterval(render, 250);
 </script>
 </body>
