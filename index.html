@@ -120,7 +120,7 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #rainMsg{display:block;font-size:19px;font-weight:800;line-height:1.3;white-space:nowrap}
 #rainNote{color:var(--muted);font-size:13px;line-height:1.4}
 #wxLine{color:var(--muted);font-size:12.5px;line-height:1.4}
-#rainMsg.wet,#rainNote.wet{color:var(--wet)}
+#rainMsg.wet,#rainNote.wet,#wxLine.wet{color:var(--wet)}
 
 /* memo: typed by the viewer, stored only in their own browser */
 #memo{padding:10px 16px 11px;border-radius:20px}
@@ -472,6 +472,11 @@ function gridAt(url){
 }
 /* 一小時雨量換成口語（分界是自訂的，不是氣象署的定義）：不到 0.5 毫米毛毛雨、5 以下小雨、15 以下中雨、以上大雨 */
 const rainWord = mm => mm < 0.5 ? '毛毛雨' : mm < 5 ? '小雨' : mm < 15 ? '中雨' : '大雨';
+/* 空氣品質（不用金鑰）：Open-Meteo 的模型推估，不是測站實測。AQI 101 以上提醒敏感族群、151 以上提醒所有人戴口罩（比照環境部的分級建議） */
+const AQ = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=25.053&longitude=121.519&current=us_aqi,pm2_5&timezone=Asia%2FTaipei';
+let AIR = null;
+const airLevel = a => a > 300 ? '危害' : a > 200 ? '非常不健康' : a > 150 ? '不健康' : a > 100 ? '對敏感族群不健康' : a > 50 ? '普通' : '良好';
+const airP = () => fetch(AQ).then(r => r.json()).then(j => { const a = j.current.us_aqi; return a >= 0 ? {aqi:Math.round(a), pm25:j.current.pm2_5} : null; }).catch(() => null);
 /* 帶傘結論：實測有雨 > 雷達預報一小時內有雨 > 沒有雷達資料時看降雨機率 */
 function verdict(v, radar, t){
   const fc = radar && radar.nowcast && t - radar.nowcast.at < 2700 ? radar.nowcast : null;
@@ -542,9 +547,10 @@ function showRain(v){
   if (bf.feel !== null && bf.feel !== undefined) bits.push('體感 '+Math.round(bf.feel)+'°C');
   if (bf.uv >= 6 && !v.sun) bits.push('紫外線'+uvLevel(bf.uv));
   if (bf.wind >= 8) bits.push('風大');
-  $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('・');
+  if (AIR && AIR.aqi > 150) bits.push('空氣差，建議戴口罩'); else if (AIR && AIR.aqi > 100) bits.push('空氣稍差，敏感者戴口罩');
+  $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('・'); $('wxLine').className = AIR && AIR.aqi > 150 ? 'wet' : '';
   const box = $('wxCells'); box.textContent = '';
-  for (const c of v.cells || []){
+  for (const c of (v.cells || []).concat(AIR ? [{k:'空氣品質', v:'AQI ' + AIR.aqi, n:airLevel(AIR.aqi) + '・模型推估'}] : [])){
     const d = document.createElement('div'); d.className = 'cell';
     for (const [tag, txt] of [['small', c.k], ['b', c.v], ['small', c.n || '\u00a0']]){ const e = document.createElement(tag); e.textContent = txt; d.appendChild(e); }
     box.appendChild(d);
@@ -578,7 +584,7 @@ document.addEventListener('visibilitychange', () => { if ($('camBox').open) docu
 function rain(){
   loadRadar();
   const key = store.get('cwaKey', '');
-  const radarP = Promise.all([gridAt(GRID.nowcast), gridAt(GRID.past)]).then(([nowcast, past]) => ({nowcast, past}));
+  const radarP = Promise.all([gridAt(GRID.nowcast), gridAt(GRID.past), airP()]).then(([nowcast, past, air]) => { AIR = air; return {nowcast, past}; });
   if (!key) return radarP.then(radar => rainForecastOnly('', radar));
   const get = u => fetch(u + '&Authorization=' + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => null);
   Promise.all([get(GAUGE.replace('&Authorization=', '')), get(CWA + CWA_Q.warn), get(CWA + CWA_Q.obs), get(CWA + CWA_Q.fc), radarP]).then(([gj, w, o, f, radar]) => {
