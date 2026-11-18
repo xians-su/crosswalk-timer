@@ -21,7 +21,7 @@ def bands(P, X, C, walk_phase=None):
             # Taipei midnight in Unix seconds is a multiple of every cycle length in use (checked here)
             assert (8 * 3600) % pl['cycle'] == 0 and 86400 % pl['cycle'] == 0, f"cycle {pl['cycle']} breaks the midnight model"
             b = {'days': days, 'from': sod(frm), 'to': to, 'cycle': pl['cycle'], 'plan': pid,
-                 'anchor': (pl['offset'] + K + sum(pl['p'][:w])) % pl['cycle'], 'red': pl['p'][w] - clear}
+                 'anchor': round((pl['offset'] + K + sum(pl['p'][:w])) % pl['cycle'], 1), 'red': pl['p'][w] - clear - X.get('shorten', 0)}
             L = X.get('lamp')
             if L and walk_phase is None:             # what check.py expects the camera to see: when the lamp changes, and for how long
                 ph = [w] if L['len_phases'] == 'walk' else L['len_phases']
@@ -33,12 +33,14 @@ if __name__ == '__main__':
     XS = json.load(open(f'{D}/crossings.json')); PL = json.load(open(f'{D}/plans.json')); C = json.load(open(f'{D}/calib.json'))
     if 'K' in C or 'per_plan' in C or 'checked' in C: C = {XS[0]['code']: C}        # old single-crossing format
     first = PL[XS[0]['code']]
-    done = sum(len(C.get(X['code'], {}).get('checked', {})) for X in XS); total = sum(len(PL[X['code']]['plans']) for X in XS)
+    watched = [X for X in XS if X.get('lamp')]      # only crossings the camera check can measure count towards the progress note
+    done = sum(len(C.get(X['code'], {}).get('checked', {})) for X in watched); total = sum(len(PL[X['code']]['plans']) for X in watched)
     note = f"交工處時制表 {first['data_time'][:10]} 版・攝影機已核對 {done}/{total} 套時制"
     def crossing(i, X):
         P, c = PL[X['code']], C.get(X['code'], {})
         out = {'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'], 'bands': bands(P, X, c)}
         if X.get('lamp'): out['lamp'] = {k: X['lamp'][k] for k in ('roi', 'color', 'len_tol', 'strict', 'jitter') if k in X['lamp']}
+        if X.get('approx'): out['approx'] = True       # timing varies from cycle to cycle: the page says so
         if X.get('options'):      # several crossings at one junction: the page shows a switch
             out['opts'] = [{'dir': o['dir'], 'bands': bands(P, X, c, o['walk_phase'])} for o in X['options']]
             for ob, bb in zip(out['opts'][0]['bands'], out['bands']):

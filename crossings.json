@@ -48,10 +48,10 @@
     2,
     3
    ],
-   "len_extra": 7,
+   "len_extra": 12,
    "len_tol": 7,
    "strict": false,
-   "why": "the 南京西路 lamp at 25 巷 turns red at the start of the 7 s all-red that ends phase 1, i.e. 7 s before the pedestrian phase"
+   "why": "the 南京西路 lamp at 25 巷 turns red at the start of the 7 s all-red that ends phase 1, i.e. 7 s before the pedestrian phase; measured at 10 frames a second the red lasts about 5 s longer than the three phases plus all-red, hence len_extra 12"
   }
  },
  {
@@ -70,7 +70,7 @@
   },
   "min_clear": 6,
   "default_walk": 150,
-  "why": "two crossings at this junction. 橫越承德路 runs with 南京西路 green: phase 3 in the 4-phase night plans, phase 5 in the 6-phase plans (camera-checked). 橫越南京西路 runs with 承德路 green: phase 1 / phase 2",
+  "why": "two crossings at this junction. 橫越承德路 runs with 南京西路 green: phase 3 in the 4-phase night plans, phase 5 in the 6-phase plans (camera-checked). 橫越南京西路 runs with 承德路 green: phase 1 / phase 2. Measured 2026-11-18 at 10 frames a second: this junction is not fixed from cycle to cycle — the 南京西路 green started 0, 5 or 10 s early and ended up to 5 s early in 7 cycles. So the window is shortened by `shorten` seconds, the page marks it as approximate, and it is left out of the camera check",
   "dir": "橫越承德路",
   "options": [
    {
@@ -90,16 +90,7 @@
     }
    }
   ],
-  "lamp": {
-   "roi": "C",
-   "color": "green",
-   "lead": 0,
-   "len_phases": "walk",
-   "len_extra": -9,
-   "len_tol": 9,
-   "strict": false,
-   "why": "the 南京西路 lamp at 承德路 turns green when people may start crossing 承德路 (first option); observed green is about 9 s shorter than the phase; its switch-on time is read less steadily than the red lamps, so a wider spread is accepted",
-   "jitter": 5
-  }
+  "approx": true,
+  "shorten": 6
  }
 ]

@@ -2,7 +2,7 @@
 """Compare sampled lamp data (logger.py CSV) with schedule.json, for every crossing that has a `lamp` recipe in crossings.json.
 Usage: check.py SAMPLE.csv [--apply]
 For each crossing and each timing band covered by the sample:
-  ok        the lamp changes when the timetable says (within TOL seconds after removing BIAS)
+  ok        the lamp changes when the timetable says (within 1.0 s for a fine sample, 3.0 s for a coarse one, after removing BIAS)
   adjusted  a strict lamp is read clearly (4+ agreeing cycles) and is consistently early/late -> that crossing's per_plan K in calib.json
             is updated (with --apply)
   drift     early/late by more than TOL, but the evidence is not strong enough to change the timetable -> logged only
@@ -11,7 +11,14 @@ For each crossing and each timing band covered by the sample:
 FAIL looks like: 'mismatch', 'adjusted' or 'drift' lines; a timetable shifted by 30 s must produce 'adjusted' (strict lamp) or 'drift' with err about -30."""
 import sys, json, os, datetime, numpy as np
 D = os.path.dirname(os.path.abspath(__file__))
-BIAS, TOL = 3.5, 3.0   # BIAS: stream delay + detection lag of this method, measured 2026-11-18
+# Two kinds of sample (see logger.py): fine = 10 frames a second on the stream's media clock, coarse = one frame a second.
+# BIAS is what the method itself adds (camera-to-server delay; for coarse samples also the download and decode time).
+# For fine samples it cannot be measured from here: with K = 0 the two fixed-time lamps read +0.35 to +0.5 s on 2026-11-18,
+# and a live stream cannot lag by less than a few tenths of a second, so 0.3 s is assumed. The true timetable error is
+# therefore the reported err give or take about 0.3 s.
+# TOL is how far from the timetable a lamp may be and still count as agreeing, CORE is the spread accepted between cycles.
+FINE = {'bias': 0.3, 'tol': 1.0, 'core': 0.6, 'spread': 0.6}
+COARSE = {'bias': 3.5, 'tol': 3.0, 'core': 2.5, 'spread': 2.5}
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 COLS = {'A': 3, 'B': 6, 'C': 9, 'D': 12, 'E': 15}      # first CSV column (green count) of each sampling box; red is the next one
 
@@ -33,7 +40,9 @@ def check(csv, sched):
         L = X.get('lamp')
         if not L: continue
         c = COLS[L['roi']]; a = np.genfromtxt(csv, delimiter=',', usecols=[0, c, c + 1]); t = a[:, 0]
+        M = FINE if np.median(np.diff(t)) < 0.5 else COARSE
         lit = (a[:, 2] >= 3) & (a[:, 1] < 3) if L['color'] == 'red' else (a[:, 1] >= 3)
+        if M is FINE: lit = np.convolve(lit.astype(float), np.ones(5) / 5, mode='same') > 0.5      # a single odd frame must not start or end a period
         runs = [r for r in runs_of(t, lit) if r[0] > t[0] + 5 and r[0] + r[1] < t[-1] - 5]      # complete periods only
         for b in X['bands']:
             ev = []
@@ -50,12 +59,12 @@ def check(csv, sched):
             if good.sum() < 3:
                 r['status'] = 'mismatch' if len(ev) >= 4 and np.ptp(ln) <= 6 else 'unclear'
             else:
-                eg = e[good]; core = eg[np.abs(eg - np.median(eg)) <= L.get('jitter', 2.5)]   # ignore stray early/late detections
-                r['err'] = round(float(np.median(core)) - BIAS, 1); r['spread'] = round(float(np.ptp(core)), 1); r['agree'] = int(len(core))
+                eg = e[good]; core = eg[np.abs(eg - np.median(eg)) <= max(M['core'], L.get('jitter', 0) if M is COARSE else 0)]   # ignore stray detections
+                r['err'] = round(float(np.median(core)) - M['bias'], 2 if M is FINE else 1); r['spread'] = round(float(np.ptp(core)), 2 if M is FINE else 1); r['agree'] = int(len(core)); r['fine'] = M is FINE
                 if len(core) < 3 or len(core) < 0.6 * len(eg): r['status'] = 'unclear'
-                elif abs(r['err']) <= TOL: r['status'] = 'ok'
+                elif abs(r['err']) <= M['tol']: r['status'] = 'ok'
                 # correcting the timetable is only allowed on solid evidence: a strict lamp, at least 4 agreeing cycles, tight spread
-                elif L.get('strict') and len(core) >= 4 and r['spread'] <= 2.5: r['status'] = 'adjusted'
+                elif L.get('strict') and len(core) >= 4 and r['spread'] <= M['spread']: r['status'] = 'adjusted'
                 else: r['status'] = 'drift'
             res.append(r)
     return res, t
@@ -73,7 +82,7 @@ if __name__ == '__main__':
         if 'K' in C or 'per_plan' in C or 'checked' in C: C = {sched['crossings'][0]['code']: C}      # old single-crossing format
         for r in res:
             c = C.setdefault(code[r['x']], {}); c.setdefault('K', 0); c.setdefault('per_plan', {}); c.setdefault('checked', {})
-            if r['status'] == 'adjusted': c['per_plan'][r['plan']] = c['per_plan'].get(r['plan'], c['K']) + round(r['err'])
+            if r['status'] == 'adjusted': c['per_plan'][r['plan']] = round(c['per_plan'].get(r['plan'], c['K']) + r['err'], 1 if r.get('fine') else 0)
             if r['status'] in ('ok', 'adjusted'): c['checked'][r['plan']] = when
         json.dump(C, open(f'{D}/calib.json', 'w'), ensure_ascii=False, indent=1)
         p = f'{D}/checks.json'; log = json.load(open(p)) if os.path.exists(p) else []
