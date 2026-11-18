@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Download the official timing-plan PDF and write plans.json.
-Exits non-zero (so the workflow fails and GitHub notifies) if the layout no longer matches
-what the timetable model assumes: Mon-Fri identical, Sat=Sun, 3 phases summing to the cycle."""
+"""Download the official timing-plan PDF of every crossing in crossings.json and write plans.json
+({code: plan}). Exits non-zero (so the workflow fails and GitHub notifies) if a layout no longer matches
+what the timetable model assumes: Mon-Fri identical, Sat=Sun, the expected number of phases summing to the cycle."""
 import json, os, re, subprocess, sys, urllib.request
 D = os.path.dirname(os.path.abspath(__file__))
-ID = 'SLWH710'; URL = f'https://www.ttcx.dot.gov.taipei/cpt/api/TimingPlan/pdf/{ID}'
+URL = 'https://www.ttcx.dot.gov.taipei/cpt/api/TimingPlan/pdf/'
 PLAN = re.compile(r'(?:^|\s)(\d{2})\s+(\d{2,3})\s+(\d{1,3})\s+(\d)\s+([0-9A-F]{2})\s+((?:\d+\s*)+)$')
 
-def parse(txt):
+def parse(txt, X):
     wd, we, plans, times, data_time = [], [], {}, None, None
     for line in txt.splitlines():
         m = re.search(r'資料時間：([\d\- :]+)', line)
@@ -31,7 +31,7 @@ def parse(txt):
         else: m = None
         if m:
             pid, cyc, off, _, typ, ph = m.groups(); p = [int(x) for x in ph.split()]
-            assert len(p) == 3 and sum(p) == int(cyc), f'plan {pid}: phases {p} vs cycle {cyc}'
+            assert len(p) == X['phases'] and sum(p) == int(cyc), f'plan {pid}: phases {p} vs cycle {cyc}'
             plans[pid] = {'cycle': int(cyc), 'offset': int(off), 'p': p}
     for tab in (wd, we):
         tab.sort(); assert tab and tab[0][0] == '00:00', 'table must start at 00:00'
@@ -39,18 +39,21 @@ def parse(txt):
         tab[:] = [list(r) for i, r in enumerate(tab) if i == 0 or r[1] != tab[i - 1][1]]
         assert all(pid in plans for _, pid in tab), 'table refers to an unknown plan'
     assert data_time and len(plans) >= 3
-    return {'source': URL, 'data_time': data_time, 'intersection': f'南京西路 × 赤峰街 ({ID})', 'wd': wd, 'we': we,
+    return {'source': URL + X['code'], 'data_time': data_time, 'intersection': f"{X['full']} ({X['code']})", 'wd': wd, 'we': we,
             'plans': dict(sorted(plans.items()))}
 
 if __name__ == '__main__':
-    pdf = sys.argv[1] if len(sys.argv) > 1 else None
-    if not pdf:
-        pdf = '/tmp/plan.pdf'
-        req = urllib.request.Request(URL, headers={'User-Agent': 'Mozilla/5.0'})
-        open(pdf, 'wb').write(urllib.request.urlopen(req, timeout=60).read())
-    new = parse(subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout)
-    old = json.load(open(f'{D}/plans.json')) if os.path.exists(f'{D}/plans.json') else None
-    same = old is not None and all(old.get(k) == new[k] for k in ('wd', 'we', 'plans'))
-    print('official plan', new['data_time'], 'unchanged' if same else 'CHANGED')
-    if not same or old.get('data_time') != new['data_time']:
-        json.dump(new, open(f'{D}/plans.json', 'w'), ensure_ascii=False, indent=1)
+    # parse_plan.py            -> download every crossing's PDF
+    # parse_plan.py DIR        -> read DIR/<code>.pdf instead (tests)
+    old = json.load(open(f'{D}/plans.json')) if os.path.exists(f'{D}/plans.json') else {}
+    new, changed = {}, False
+    for X in json.load(open(f'{D}/crossings.json')):
+        pdf = os.path.join(sys.argv[1], X['code'] + '.pdf') if len(sys.argv) > 1 else f"/tmp/{X['code']}.pdf"
+        if len(sys.argv) <= 1:
+            req = urllib.request.Request(URL + X['code'], headers={'User-Agent': 'Mozilla/5.0'})
+            open(pdf, 'wb').write(urllib.request.urlopen(req, timeout=60).read())
+        n = parse(subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout, X)
+        o = old.get(X['code'], {}); same = all(o.get(k) == n[k] for k in ('wd', 'we', 'plans'))
+        print(X['code'], 'official plan', n['data_time'], 'unchanged' if same else 'CHANGED')
+        changed |= not same or o.get('data_time') != n['data_time']; new[X['code']] = n
+    if changed: json.dump(new, open(f'{D}/plans.json', 'w'), ensure_ascii=False, indent=1)

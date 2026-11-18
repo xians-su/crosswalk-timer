@@ -1,0 +1,24 @@
+[
+ {
+  "id": "chifeng",
+  "code": "SLWH710",
+  "name": "赤峰街口",
+  "full": "南京西路 × 赤峰街",
+  "phases": 3,
+  "walk_phase": 2,
+  "clear": 6,
+  "default_walk": 90,
+  "why": "phase 3 = 赤峰街 green; people cross 南京西路. clear = yellow 3 + all-red 3"
+ },
+ {
+  "id": "zhongshan",
+  "code": "SLWH610",
+  "name": "中山站 3・4 號出口",
+  "full": "南京西路 × 25 巷",
+  "phases": 4,
+  "walk_phase": 1,
+  "clear": 5,
+  "default_walk": 120,
+  "why": "phase 2 = pedestrian-only phase (ped flash 21, ped stop 5; no vehicle yellow). clear = ped stop 5"
+ }
+]

@@ -28,7 +28,7 @@ def check(csv, sched):
     runs = red_runs(t, (a[:, 2] >= 3) & (a[:, 1] < 3))
     runs = [r for r in runs if r[0] > t[0] + 5 and r[0] + r[1] < t[-1] - 5]      # complete periods only
     res = []
-    for b in sched['bands']:
+    for b in sched['crossings'][0]['bands']:
         ev = []
         for s, l in runs:
             d = datetime.datetime.fromtimestamp(s, TZ); sod = d.hour * 3600 + d.minute * 60 + d.second

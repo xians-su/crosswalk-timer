@@ -1,176 +1,347 @@
 {
- "bands": [
+ "crossings": [
   {
-   "days": "wd",
-   "from": 0,
-   "to": 3600,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "05",
-   "lampRed": 47
+   "id": "chifeng",
+   "code": "SLWH710",
+   "name": "赤峰街口",
+   "full": "南京西路 × 赤峰街",
+   "walk": 90,
+   "bands": [
+    {
+     "days": "wd",
+     "from": 0,
+     "to": 3600,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "wd",
+     "from": 3600,
+     "to": 19800,
+     "cycle": 90,
+     "plan": "06",
+     "anchor": 50,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "wd",
+     "from": 19800,
+     "to": 25200,
+     "cycle": 120,
+     "plan": "01",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "wd",
+     "from": 25200,
+     "to": 34200,
+     "cycle": 200,
+     "plan": "09",
+     "anchor": 76,
+     "red": 58,
+     "lampRed": 71
+    },
+    {
+     "days": "wd",
+     "from": 34200,
+     "to": 46800,
+     "cycle": 200,
+     "plan": "04",
+     "anchor": 118,
+     "red": 56,
+     "lampRed": 69
+    },
+    {
+     "days": "wd",
+     "from": 46800,
+     "to": 61200,
+     "cycle": 200,
+     "plan": "02",
+     "anchor": 113,
+     "red": 61,
+     "lampRed": 74
+    },
+    {
+     "days": "wd",
+     "from": 61200,
+     "to": 72000,
+     "cycle": 200,
+     "plan": "11",
+     "anchor": 75,
+     "red": 64,
+     "lampRed": 82
+    },
+    {
+     "days": "wd",
+     "from": 72000,
+     "to": 82800,
+     "cycle": 180,
+     "plan": "08",
+     "anchor": 121,
+     "red": 44,
+     "lampRed": 57
+    },
+    {
+     "days": "wd",
+     "from": 82800,
+     "to": 86400,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "we",
+     "from": 0,
+     "to": 3600,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "we",
+     "from": 3600,
+     "to": 18000,
+     "cycle": 90,
+     "plan": "06",
+     "anchor": 50,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "we",
+     "from": 18000,
+     "to": 25200,
+     "cycle": 120,
+     "plan": "01",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    },
+    {
+     "days": "we",
+     "from": 25200,
+     "to": 32400,
+     "cycle": 150,
+     "plan": "03",
+     "anchor": 90,
+     "red": 44,
+     "lampRed": 57
+    },
+    {
+     "days": "we",
+     "from": 32400,
+     "to": 43200,
+     "cycle": 150,
+     "plan": "12",
+     "anchor": 90,
+     "red": 44,
+     "lampRed": 57
+    },
+    {
+     "days": "we",
+     "from": 43200,
+     "to": 75600,
+     "cycle": 150,
+     "plan": "07",
+     "anchor": 55,
+     "red": 64,
+     "lampRed": 82
+    },
+    {
+     "days": "we",
+     "from": 75600,
+     "to": 82800,
+     "cycle": 150,
+     "plan": "13",
+     "anchor": 90,
+     "red": 44,
+     "lampRed": 57
+    },
+    {
+     "days": "we",
+     "from": 82800,
+     "to": 86400,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 80,
+     "red": 34,
+     "lampRed": 47
+    }
+   ]
   },
   {
-   "days": "wd",
-   "from": 3600,
-   "to": 19800,
-   "cycle": 90,
-   "anchor": 50,
-   "red": 34,
-   "plan": "06",
-   "lampRed": 47
-  },
-  {
-   "days": "wd",
-   "from": 19800,
-   "to": 25200,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "01",
-   "lampRed": 47
-  },
-  {
-   "days": "wd",
-   "from": 25200,
-   "to": 34200,
-   "cycle": 200,
-   "anchor": 76,
-   "red": 58,
-   "plan": "09",
-   "lampRed": 71
-  },
-  {
-   "days": "wd",
-   "from": 34200,
-   "to": 46800,
-   "cycle": 200,
-   "anchor": 118,
-   "red": 56,
-   "plan": "04",
-   "lampRed": 69
-  },
-  {
-   "days": "wd",
-   "from": 46800,
-   "to": 61200,
-   "cycle": 200,
-   "anchor": 113,
-   "red": 61,
-   "plan": "02",
-   "lampRed": 74
-  },
-  {
-   "days": "wd",
-   "from": 61200,
-   "to": 72000,
-   "cycle": 200,
-   "anchor": 75,
-   "red": 64,
-   "plan": "11",
-   "lampRed": 82
-  },
-  {
-   "days": "wd",
-   "from": 72000,
-   "to": 82800,
-   "cycle": 180,
-   "anchor": 121,
-   "red": 44,
-   "plan": "08",
-   "lampRed": 57
-  },
-  {
-   "days": "wd",
-   "from": 82800,
-   "to": 86400,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "05",
-   "lampRed": 47
-  },
-  {
-   "days": "we",
-   "from": 0,
-   "to": 3600,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "05",
-   "lampRed": 47
-  },
-  {
-   "days": "we",
-   "from": 3600,
-   "to": 18000,
-   "cycle": 90,
-   "anchor": 50,
-   "red": 34,
-   "plan": "06",
-   "lampRed": 47
-  },
-  {
-   "days": "we",
-   "from": 18000,
-   "to": 25200,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "01",
-   "lampRed": 47
-  },
-  {
-   "days": "we",
-   "from": 25200,
-   "to": 32400,
-   "cycle": 150,
-   "anchor": 90,
-   "red": 44,
-   "plan": "03",
-   "lampRed": 57
-  },
-  {
-   "days": "we",
-   "from": 32400,
-   "to": 43200,
-   "cycle": 150,
-   "anchor": 90,
-   "red": 44,
-   "plan": "12",
-   "lampRed": 57
-  },
-  {
-   "days": "we",
-   "from": 43200,
-   "to": 75600,
-   "cycle": 150,
-   "anchor": 55,
-   "red": 64,
-   "plan": "07",
-   "lampRed": 82
-  },
-  {
-   "days": "we",
-   "from": 75600,
-   "to": 82800,
-   "cycle": 150,
-   "anchor": 90,
-   "red": 44,
-   "plan": "13",
-   "lampRed": 57
-  },
-  {
-   "days": "we",
-   "from": 82800,
-   "to": 86400,
-   "cycle": 120,
-   "anchor": 80,
-   "red": 34,
-   "plan": "05",
-   "lampRed": 47
+   "id": "zhongshan",
+   "code": "SLWH610",
+   "name": "中山站 3・4 號出口",
+   "full": "南京西路 × 25 巷",
+   "walk": 120,
+   "bands": [
+    {
+     "days": "wd",
+     "from": 0,
+     "to": 3600,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 58,
+     "red": 25
+    },
+    {
+     "days": "wd",
+     "from": 3600,
+     "to": 19800,
+     "cycle": 90,
+     "plan": "06",
+     "anchor": 40,
+     "red": 20
+    },
+    {
+     "days": "wd",
+     "from": 19800,
+     "to": 25200,
+     "cycle": 120,
+     "plan": "01",
+     "anchor": 56,
+     "red": 25
+    },
+    {
+     "days": "wd",
+     "from": 25200,
+     "to": 34200,
+     "cycle": 200,
+     "plan": "09",
+     "anchor": 57,
+     "red": 38
+    },
+    {
+     "days": "wd",
+     "from": 34200,
+     "to": 46800,
+     "cycle": 200,
+     "plan": "04",
+     "anchor": 80,
+     "red": 35
+    },
+    {
+     "days": "wd",
+     "from": 46800,
+     "to": 61200,
+     "cycle": 200,
+     "plan": "02",
+     "anchor": 78,
+     "red": 40
+    },
+    {
+     "days": "wd",
+     "from": 61200,
+     "to": 72000,
+     "cycle": 200,
+     "plan": "11",
+     "anchor": 66,
+     "red": 40
+    },
+    {
+     "days": "wd",
+     "from": 72000,
+     "to": 82800,
+     "cycle": 180,
+     "plan": "08",
+     "anchor": 70,
+     "red": 42
+    },
+    {
+     "days": "wd",
+     "from": 82800,
+     "to": 86400,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 58,
+     "red": 25
+    },
+    {
+     "days": "we",
+     "from": 0,
+     "to": 3600,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 58,
+     "red": 25
+    },
+    {
+     "days": "we",
+     "from": 3600,
+     "to": 18000,
+     "cycle": 90,
+     "plan": "06",
+     "anchor": 40,
+     "red": 20
+    },
+    {
+     "days": "we",
+     "from": 18000,
+     "to": 25200,
+     "cycle": 120,
+     "plan": "01",
+     "anchor": 56,
+     "red": 25
+    },
+    {
+     "days": "we",
+     "from": 25200,
+     "to": 32400,
+     "cycle": 150,
+     "plan": "03",
+     "anchor": 55,
+     "red": 40
+    },
+    {
+     "days": "we",
+     "from": 32400,
+     "to": 43200,
+     "cycle": 150,
+     "plan": "12",
+     "anchor": 45,
+     "red": 40
+    },
+    {
+     "days": "we",
+     "from": 43200,
+     "to": 75600,
+     "cycle": 150,
+     "plan": "07",
+     "anchor": 50,
+     "red": 40
+    },
+    {
+     "days": "we",
+     "from": 75600,
+     "to": 82800,
+     "cycle": 150,
+     "plan": "13",
+     "anchor": 55,
+     "red": 40
+    },
+    {
+     "days": "we",
+     "from": 82800,
+     "to": 86400,
+     "cycle": 120,
+     "plan": "05",
+     "anchor": 58,
+     "red": 25
+    }
+   ]
   }
  ],
- "note": "交工處時制表 2026-11-12 版・攝影機已核對 1/12 套時制",
+ "note": "交工處時制表 2026-11-12 版・赤峰街口已用攝影機核對 1/12 套時制",
  "plan_time": "2026-11-12 03:16:17"
 }

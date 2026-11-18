@@ -19,18 +19,18 @@
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
   --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de;
-  --off-bg:#ffffff; --wet:#b3401f;
+  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12);
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; color-scheme:dark } }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; color-scheme:dark }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body,button,summary,a,input{touch-action:manipulation}
@@ -50,39 +50,47 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 
 #ptr{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--fg);color:var(--bg);font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px}
 
-/* signal block: one box answers "go or wait", how long, and when to leave the desk */
-#now{border-radius:20px;padding:14px 18px 16px;text-align:center;background:var(--wait-bg);color:var(--wait);transition:background .25s,color .25s}
-#now.go{background:var(--go-bg);color:var(--go)}
-#now.off{background:var(--off-bg);color:var(--muted);border:1px solid var(--line)}
-#where{font-size:12.5px;letter-spacing:.04em;color:var(--fg);opacity:.7}
-#word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
-#secs{font-family:var(--num);font-weight:800;font-size:clamp(88px,29vw,116px);line-height:1;font-variant-numeric:tabular-nums}
-#sub{font-size:14px;color:var(--fg)}
-#strip{position:relative;height:12px;border-radius:6px;background:var(--wait);overflow:hidden;margin-top:12px;opacity:.9}
-#strip i{position:absolute;top:0;bottom:0;left:0;background:var(--go)}
-#strip u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--fg);border-radius:2px}
-#leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--panel);color:var(--fg);text-align:left}
-#leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
-#walk{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-#walk .lbl{font-size:11px}
-#walk .step{gap:2px}
-#walk button{min-width:40px;min-height:36px;padding:0;border-radius:9px;font-size:18px}
-#walk output{min-width:3.4em;font-size:14px}
-#leaveMsg.go{color:var(--go)}
+/* crossings: one card each. The open card answers go/wait, how long, and when to leave; the others show the same in one line */
+#xs{display:flex;flex-direction:column;gap:10px}
+.x{border-radius:20px;background:var(--wait-bg);color:var(--wait);transition:background .25s,color .25s;overflow:hidden}
+.x.go{background:var(--go-bg);color:var(--go)}
+.x.off{background:var(--off-bg);color:var(--muted);border:1px solid var(--line)}
+.xhead{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:56px;padding:8px 16px;border:0;border-radius:0;background:none;color:inherit;text-align:left}
+.xname{font-size:14px;font-weight:700;color:var(--fg);white-space:nowrap}
+.xsum{display:flex;flex-direction:column;align-items:flex-end;line-height:1.3;white-space:nowrap;font-variant-numeric:tabular-nums}
+.xsum b{font-size:17px;font-weight:800}
+.xsum span{font-size:12.5px;color:var(--fg);opacity:.75}
+.x.open .xhead{justify-content:center;min-height:0;padding:12px 16px 0;pointer-events:none}
+.x.open .xname{font-size:12.5px;font-weight:500;letter-spacing:.04em;opacity:.7}
+.x.open .xsum,.x:not(.open) .xbody{display:none}
+.xbody{padding:0 18px 16px;text-align:center}
+.word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
+.secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:1;font-variant-numeric:tabular-nums}
+.sub{font-size:14px;color:var(--fg)}
+.strip{position:relative;height:12px;border-radius:6px;background:var(--wait);overflow:hidden;margin-top:12px;opacity:.9}
+.strip i{position:absolute;top:0;bottom:0;left:0;background:var(--go)}
+.strip u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--fg);border-radius:2px}
+.leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--pill);color:var(--fg);text-align:left}
+.leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.leaveMsg.go{color:var(--go)}
+.walk{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.walk .lbl{font-size:11px;color:var(--fg);opacity:.7}
+.walk .step{gap:2px}
+.walk button{min-width:40px;min-height:36px;padding:0;border-radius:9px;font-size:18px;border-color:var(--pill-line)}
+.walk output{min-width:3.4em;font-size:14px}
+.nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;white-space:nowrap}
+.nextRow .lbl{color:var(--fg);opacity:.7}
+.nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
+.nexts span{background:var(--pill);border-radius:999px;padding:3px 8px}
+@media (max-width:359px){.nexts span:nth-child(3){display:none}}
 
 /* umbrella answer */
-#umb{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px 11px}
+#umb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;padding:10px 14px 11px}
+#wxLine{flex-basis:100%;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:8px;padding-top:7px}
 #umb>div{min-width:0}
 #rainMsg{display:block;font-size:19px;font-weight:800;line-height:1.3;white-space:nowrap}
 #rainNote{color:var(--muted);font-size:13px;text-align:right;line-height:1.4}
 #rainMsg.wet,#rainNote.wet{color:var(--wet)}
-
-/* next crossings */
-#nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;white-space:nowrap}
-#nextRow .lbl{color:var(--fg);opacity:.7}
-#nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
-#nexts span{background:var(--panel);border-radius:999px;padding:3px 8px}
-@media (max-width:359px){#nexts span:nth-child(3){display:none}}
 
 /* weather figures: one card, hairline grid */
 #wxCells{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}
@@ -122,26 +130,14 @@ footer span:nth-child(odd){opacity:.8}
 <main>
   <header><span id="name">春樹小幸運</span><span id="tag">小幸運，就是你的超能力</span></header>
 
-  <section id="now" class="off" aria-live="off">
-    <div id="where">南京西路 × 赤峰街口・橫越南京西路</div>
-    <div id="word">尚未對時</div>
-    <div id="secs">--</div>
-    <div id="sub">這個時段沒有時刻表，到「設定與校正」對時</div>
-    <div id="strip" hidden><i id="stripGo"></i><u id="stripNow"></u></div>
-    <div id="leave">
-      <b id="leaveMsg">--</b>
-      <span id="walk"><span class="lbl">走到路口要</span>
-        <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></span>
-    </div>
-    <div id="nextRow"><span class="lbl">之後可以過</span><span id="nexts"></span></div>
-  </section>
+  <div id="xs"></div>
 
   <section id="umb" class="card">
     <div><span class="lbl">要不要帶傘</span><b id="rainMsg">查詢中</b></div>
     <div id="rainNote"></div>
+    <div id="wxLine" hidden></div>
   </section>
 
-  <section id="wxCells" class="card"></section>
   <div id="rainSub" hidden></div>
 
   <section class="group">
@@ -150,16 +146,17 @@ footer span:nth-child(odd){opacity:.8}
     <div>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
+      <p>以下套用在目前展開的路口：<b id="selName"></b></p>
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
-      <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
-      <div class="row"><span>對時用：一輪長度</span>
-        <span class="step"><button id="cycDn" aria-label="減少 1 秒">−</button><output id="cycOut">200 秒</output><button id="cycUp" aria-label="增加 1 秒">＋</button></span></div>
-      <div class="row"><span>對時用：可過的時間</span>
-        <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
+      <button id="sync">行人綠燈剛亮（以這一刻重新對時）</button>
       <button id="clear">清除我的對時，改回時刻表</button>
-      <p>平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
+      <p>平常不用校正。若某個時段不準，在路口看到行人綠燈亮起的那一刻按上面的按鈕，之後 3 小時以那一刻為準。</p>
     </div>
+  </details>
+  <details id="wxBox">
+    <summary>天氣細節</summary>
+    <div><div id="wxCells" class="card"></div></div>
   </details>
   <details id="radarBox">
     <summary>雷達回波圖</summary>
@@ -178,44 +175,46 @@ footer span:nth-child(odd){opacity:.8}
   </section>
 
   <footer>
-    <span>號誌</span><span>臺北市南京西路 × 赤峰街口（交工處編號 SLWH710）</span>
+    <span>號誌</span><span id="srcX"></span>
     <span>時刻</span><span id="srcNote"></span>
     <span>天氣</span><span>中央氣象署雷達與測站；無測站資料時用 Open-Meteo</span>
   </footer>
 </main>
 <script>
-/* ---- 實測時刻表（由 VPS 校準後填入；之後純靠手機時鐘計算，不需連線）----
-   days: 'wd' 週一至五, 'we' 週六日；from/to: 當天秒數；cycle: 一輪秒數；
-   anchor: 某一次「車道轉紅」的 Unix 秒；red: 車道紅燈（可過）秒數 */
-let BANDS = /*BANDS*/[{"days": "wd", "from": 0, "to": 3600, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "wd", "from": 3600, "to": 19800, "cycle": 90, "anchor": 50, "red": 34, "plan": "06", "lampRed": 47}, {"days": "wd", "from": 19800, "to": 25200, "cycle": 120, "anchor": 80, "red": 34, "plan": "01", "lampRed": 47}, {"days": "wd", "from": 25200, "to": 34200, "cycle": 200, "anchor": 76, "red": 58, "plan": "09", "lampRed": 71}, {"days": "wd", "from": 34200, "to": 46800, "cycle": 200, "anchor": 118, "red": 56, "plan": "04", "lampRed": 69}, {"days": "wd", "from": 46800, "to": 61200, "cycle": 200, "anchor": 113, "red": 61, "plan": "02", "lampRed": 74}, {"days": "wd", "from": 61200, "to": 72000, "cycle": 200, "anchor": 75, "red": 64, "plan": "11", "lampRed": 82}, {"days": "wd", "from": 72000, "to": 82800, "cycle": 180, "anchor": 121, "red": 44, "plan": "08", "lampRed": 57}, {"days": "wd", "from": 82800, "to": 86400, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "we", "from": 0, "to": 3600, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "we", "from": 3600, "to": 18000, "cycle": 90, "anchor": 50, "red": 34, "plan": "06", "lampRed": 47}, {"days": "we", "from": 18000, "to": 25200, "cycle": 120, "anchor": 80, "red": 34, "plan": "01", "lampRed": 47}, {"days": "we", "from": 25200, "to": 32400, "cycle": 150, "anchor": 90, "red": 44, "plan": "03", "lampRed": 57}, {"days": "we", "from": 32400, "to": 43200, "cycle": 150, "anchor": 90, "red": 44, "plan": "12", "lampRed": 57}, {"days": "we", "from": 43200, "to": 75600, "cycle": 150, "anchor": 55, "red": 64, "plan": "07", "lampRed": 82}, {"days": "we", "from": 75600, "to": 82800, "cycle": 150, "anchor": 90, "red": 44, "plan": "13", "lampRed": 57}, {"days": "we", "from": 82800, "to": 86400, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}]/*END*/;
-let SRC = /*SRC*/"交工處時制表 2026-11-12 版・攝影機已核對 1/12 套時制"/*END*/;
+/* ---- 時刻表：由官方時制表產生，每週自動核對更新；之後純靠手機時鐘計算 ----
+   每個路口的 bands：days 'wd' 週一至五／'we' 週六日；from/to 當天秒數；cycle 一輪秒數；
+   anchor 行人可以開始過的時刻（對 cycle 取餘數的 Unix 秒）；red 可以過的秒數 */
+let DATA = /*DATA*/{"crossings": [{"id": "chifeng", "code": "SLWH710", "name": "赤峰街口", "full": "南京西路 × 赤峰街", "walk": 90, "bands": [{"days": "wd", "from": 0, "to": 3600, "cycle": 120, "plan": "05", "anchor": 80, "red": 34, "lampRed": 47}, {"days": "wd", "from": 3600, "to": 19800, "cycle": 90, "plan": "06", "anchor": 50, "red": 34, "lampRed": 47}, {"days": "wd", "from": 19800, "to": 25200, "cycle": 120, "plan": "01", "anchor": 80, "red": 34, "lampRed": 47}, {"days": "wd", "from": 25200, "to": 34200, "cycle": 200, "plan": "09", "anchor": 76, "red": 58, "lampRed": 71}, {"days": "wd", "from": 34200, "to": 46800, "cycle": 200, "plan": "04", "anchor": 118, "red": 56, "lampRed": 69}, {"days": "wd", "from": 46800, "to": 61200, "cycle": 200, "plan": "02", "anchor": 113, "red": 61, "lampRed": 74}, {"days": "wd", "from": 61200, "to": 72000, "cycle": 200, "plan": "11", "anchor": 75, "red": 64, "lampRed": 82}, {"days": "wd", "from": 72000, "to": 82800, "cycle": 180, "plan": "08", "anchor": 121, "red": 44, "lampRed": 57}, {"days": "wd", "from": 82800, "to": 86400, "cycle": 120, "plan": "05", "anchor": 80, "red": 34, "lampRed": 47}, {"days": "we", "from": 0, "to": 3600, "cycle": 120, "plan": "05", "anchor": 80, "red": 34, "lampRed": 47}, {"days": "we", "from": 3600, "to": 18000, "cycle": 90, "plan": "06", "anchor": 50, "red": 34, "lampRed": 47}, {"days": "we", "from": 18000, "to": 25200, "cycle": 120, "plan": "01", "anchor": 80, "red": 34, "lampRed": 47}, {"days": "we", "from": 25200, "to": 32400, "cycle": 150, "plan": "03", "anchor": 90, "red": 44, "lampRed": 57}, {"days": "we", "from": 32400, "to": 43200, "cycle": 150, "plan": "12", "anchor": 90, "red": 44, "lampRed": 57}, {"days": "we", "from": 43200, "to": 75600, "cycle": 150, "plan": "07", "anchor": 55, "red": 64, "lampRed": 82}, {"days": "we", "from": 75600, "to": 82800, "cycle": 150, "plan": "13", "anchor": 90, "red": 44, "lampRed": 57}, {"days": "we", "from": 82800, "to": 86400, "cycle": 120, "plan": "05", "anchor": 80, "red": 34, "lampRed": 47}]}, {"id": "zhongshan", "code": "SLWH610", "name": "中山站 3・4 號出口", "full": "南京西路 × 25 巷", "walk": 120, "bands": [{"days": "wd", "from": 0, "to": 3600, "cycle": 120, "plan": "05", "anchor": 58, "red": 25}, {"days": "wd", "from": 3600, "to": 19800, "cycle": 90, "plan": "06", "anchor": 40, "red": 20}, {"days": "wd", "from": 19800, "to": 25200, "cycle": 120, "plan": "01", "anchor": 56, "red": 25}, {"days": "wd", "from": 25200, "to": 34200, "cycle": 200, "plan": "09", "anchor": 57, "red": 38}, {"days": "wd", "from": 34200, "to": 46800, "cycle": 200, "plan": "04", "anchor": 80, "red": 35}, {"days": "wd", "from": 46800, "to": 61200, "cycle": 200, "plan": "02", "anchor": 78, "red": 40}, {"days": "wd", "from": 61200, "to": 72000, "cycle": 200, "plan": "11", "anchor": 66, "red": 40}, {"days": "wd", "from": 72000, "to": 82800, "cycle": 180, "plan": "08", "anchor": 70, "red": 42}, {"days": "wd", "from": 82800, "to": 86400, "cycle": 120, "plan": "05", "anchor": 58, "red": 25}, {"days": "we", "from": 0, "to": 3600, "cycle": 120, "plan": "05", "anchor": 58, "red": 25}, {"days": "we", "from": 3600, "to": 18000, "cycle": 90, "plan": "06", "anchor": 40, "red": 20}, {"days": "we", "from": 18000, "to": 25200, "cycle": 120, "plan": "01", "anchor": 56, "red": 25}, {"days": "we", "from": 25200, "to": 32400, "cycle": 150, "plan": "03", "anchor": 55, "red": 40}, {"days": "we", "from": 32400, "to": 43200, "cycle": 150, "plan": "12", "anchor": 45, "red": 40}, {"days": "we", "from": 43200, "to": 75600, "cycle": 150, "plan": "07", "anchor": 50, "red": 40}, {"days": "we", "from": 75600, "to": 82800, "cycle": 150, "plan": "13", "anchor": 55, "red": 40}, {"days": "we", "from": 82800, "to": 86400, "cycle": 120, "plan": "05", "anchor": 58, "red": 25}]}], "note": "交工處時制表 2026-11-12 版・赤峰街口已用攝影機核對 1/12 套時制", "plan_time": "2026-11-12 03:16:17"}/*END*/;
 
 const $ = id => document.getElementById(id);
 const store = {
   get(k, d){ try{ const v = localStorage.getItem('xw_'+k); return v===null? d : JSON.parse(v);}catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem('xw_'+k, JSON.stringify(v)); }catch(e){} }
 };
-/* 時刻表每週自動核對更新；抓不到就用頁面內建的版本 */
 const SITE = '';   // 時刻表與頁面放在同一個網址下
-function loadSchedule(){ fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
-  if (s.bands && s.bands.length){ BANDS = s.bands; SRC = s.note; store.set('sched', s); }
-}).catch(() => { const c = store.get('sched', null); if (c && c.bands && c.bands.length){ BANDS = c.bands; SRC = c.note; } }); }
-loadSchedule();
-let walk = store.get('walk', 90), cross = store.get('cross', 25), nudge = store.get('nudge', 0);
-let manual = store.get('manual', null);            // {anchor, cycle, red, at}
-let mCycle = store.get('cycle', 200), mRed = store.get('red', 95);
+function loadSchedule(){
+  fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
+    if (s.crossings && s.crossings.length){ DATA = s; store.set('sched2', s); build(); }
+  }).catch(() => { const c = store.get('sched2', null); if (c && c.crossings && c.crossings.length){ DATA = c; build(); } });
+}
+if (store.get('walk_chifeng', null) === null && store.get('walk', null) !== null) store.set('walk_chifeng', store.get('walk', 90));   // 舊版設定搬過來
+let cross = store.get('cross', 25), sel = store.get('sel', null);
 const MANUAL_TTL = 3*3600;
+const walkOf = x => store.get('walk_'+x.id, x.walk || 90), nudgeOf = x => store.get('nudge_'+x.id, 0);
+const manualOf = (x, t) => { const m = store.get('manual_'+x.id, null); return m && t - m.at < MANUAL_TTL ? m : null; };
+const selX = () => DATA.crossings.find(x => x.id === sel) || DATA.crossings[0];
 
-function bandFor(t){
+function bandFor(bands, t){
   const d = new Date((t + 8*3600)*1000);           // 台北時間
   const dow = d.getUTCDay(), sod = d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
   const type = (dow===0||dow===6) ? 'we' : 'wd';
-  return BANDS.find(b => b.days===type && sod>=b.from && sod<b.to) || null;
+  return bands.find(b => b.days===type && sod>=b.from && sod<b.to) || null;
 }
-function plan(t){
-  if (manual && t - manual.at < MANUAL_TTL) return {anchor:manual.anchor+nudge, cycle:mCycle, red:mRed, manual:true};
-  const b = bandFor(t);
-  return b ? {anchor:b.anchor+nudge, cycle:b.cycle, red:b.red, manual:false} : null;
+function plan(x, t){
+  const m = manualOf(x, t), n = nudgeOf(x);
+  if (m) return {anchor:m.anchor+n, cycle:m.cycle, red:m.red, manual:m};
+  const b = bandFor(x.bands, t);
+  return b ? {anchor:b.anchor+n, cycle:b.cycle, red:b.red, manual:null} : null;
 }
 const mod = (a,n) => ((a%n)+n)%n;
 function stateAt(p, t){
@@ -223,66 +222,80 @@ function stateAt(p, t){
   return ph < p.red ? {go:true, left:p.red-ph, ph} : {go:false, left:p.cycle-ph, ph};
 }
 /* 最早何時出發，抵達時還剩足夠時間過完 */
-function leaveIn(p, t){
-  const start0 = t - mod(t - p.anchor, p.cycle);   // 本輪轉紅時刻
+function leaveIn(p, t, walk){
+  const start0 = t - mod(t - p.anchor, p.cycle);   // 本輪可以過的起點
   for (let k=0; k<6; k++){
-    const s = start0 + k*p.cycle, lastArrive = s + p.red - cross;
-    const dep = Math.max(t, s - walk);
-    if (dep + walk <= lastArrive) return dep - t;
+    const s = start0 + k*p.cycle, dep = Math.max(t, s - walk);
+    if (dep + walk <= s + p.red - cross) return dep - t;
   }
   return null;
 }
 const hms = t => new Date((t+8*3600)*1000).toISOString().substr(11,8);
 
+/* 每個路口一張卡片：展開的那張是大字版，其餘收成一行 */
+function build(){
+  const box = $('xs'); box.textContent = '';
+  if (!DATA.crossings.find(x => x.id === sel)) sel = DATA.crossings.length ? DATA.crossings[0].id : null;
+  for (const x of DATA.crossings){
+    const s = document.createElement('section'); s.className = 'x off';
+    s.innerHTML = '<button class="xhead"><span class="xname"></span><span class="xsum"><b></b><span></span></span></button>' +
+      '<div class="xbody"><div class="word"></div><div class="secs"></div><div class="sub"></div><div class="strip"><i></i><u></u></div>' +
+      '<div class="leave"><b class="leaveMsg"></b><span class="walk"><span class="lbl">走到路口要</span><span class="step"><button class="dn" aria-label="減少 5 秒">−</button><output></output><button class="up" aria-label="增加 5 秒">＋</button></span></span></div>' +
+      '<div class="nextRow"><span class="lbl">之後可以過</span><span class="nexts"></span></div></div>';
+    const q = c => s.querySelector(c);
+    x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
+            go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts')};
+    q('.xname').textContent = x.name;
+    x.el.head.addEventListener('click', () => { sel = x.id; store.set('sel', sel); labels(); render(); });
+    const step = d => { store.set('walk_'+x.id, Math.max(0, Math.min(900, walkOf(x) + d))); labels(); render(); };
+    q('.dn').addEventListener('click', () => step(-5)); q('.up').addEventListener('click', () => step(5));
+    box.appendChild(s);
+  }
+  $('srcX').textContent = DATA.crossings.map(x => x.name + '＝' + x.full + '（' + x.code + '）').join('；');
+  labels(); render();
+}
 function render(){
   const t = Date.now()/1000;
-  const p = plan(t), now = $('now');
-  $('strip').hidden = !p;
-  if (!p){
-    now.className = 'off'; $('word').textContent = '尚未對時'; $('secs').textContent = '--';
-    $('sub').textContent = '這個時段沒有時刻表，到「設定與校正」對時'; $('nexts').textContent = '';
-    $('leaveMsg').textContent = '--'; $('leaveMsg').className = '';
-  } else {
-    const s = stateAt(p, t);
-    now.className = s.go ? 'go' : '';
-    $('word').textContent = s.go ? '可以過' : '先等等';
-    $('secs').textContent = Math.ceil(s.left);
-    $('sub').textContent = s.go ? '秒後不能過' : '秒後可以過';
-    $('stripGo').style.width = (p.red/p.cycle*100)+'%';
-    $('stripNow').style.left = (s.ph/p.cycle*100)+'%';
-    $('nexts').innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
-    const w = leaveIn(p, t), lm = $('leaveMsg');
-    if (w===null){ lm.textContent = '可過時間太短'; lm.className=''; }
-    else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
-    else { lm.textContent = Math.ceil(w)+' 秒後出發'; lm.className=''; }
+  for (const x of DATA.crossings){
+    const e = x.el; if (!e) continue;
+    const p = plan(x, t), open = x.id === sel;
+    e.head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!p){
+      e.card.className = 'x off' + (open ? ' open' : '');
+      e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到「設定與校正」對時'; e.strip.hidden = true;
+      e.leave.textContent = '--'; e.leave.className = 'leaveMsg'; e.nexts.textContent = ''; e.sum1.textContent = '沒有時刻表'; e.sum2.textContent = '';
+      continue;
+    }
+    const s = stateAt(p, t), w = leaveIn(p, t, walkOf(x)), secs = Math.ceil(s.left);
+    const leave = w === null ? '可過時間太短' : (w < 1 ? '現在出發' : Math.ceil(w) + ' 秒後出發');
+    e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
+    e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
+    e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.go ? '秒後不能過' : '秒後可以過';
+    e.strip.hidden = false; e.go.style.width = (p.red/p.cycle*100)+'%'; e.now.style.left = (s.ph/p.cycle*100)+'%';
+    e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
+    e.nexts.innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
   }
-  $('srcNote').textContent = p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC;
+  const x = selX(), m = x ? manualOf(x, t) : null;
+  $('srcNote').textContent = m ? x.name+'依你 '+hms(m.at)+' 的對時推算' : DATA.note;
 }
 function labels(){
-  $('walkOut').textContent = walk+' 秒'; $('crossOut').textContent = cross+' 秒';
-  $('nudgeOut').textContent = (nudge>0?'+':'')+nudge+' 秒';
-  $('cycOut').textContent = mCycle+' 秒'; $('redOut').textContent = mRed+' 秒';
+  for (const x of DATA.crossings) if (x.el) x.el.walk.textContent = walkOf(x)+' 秒';
+  const x = selX(), n = x ? nudgeOf(x) : 0;
+  $('crossOut').textContent = cross+' 秒'; $('nudgeOut').textContent = (n>0?'+':'')+n+' 秒';
+  $('selName').textContent = x ? x.name : '';
 }
 function bind(id, fn){ $(id).addEventListener('click', () => { fn(); labels(); render(); }); }
-bind('walkDn', () => store.set('walk', walk = Math.max(0, walk-5)));
-bind('walkUp', () => store.set('walk', walk = Math.min(600, walk+5)));
 bind('crossDn', () => store.set('cross', cross = Math.max(5, cross-5)));
 bind('crossUp', () => store.set('cross', cross = Math.min(90, cross+5)));
-bind('nudgeDn', () => store.set('nudge', nudge -= 1));
-bind('nudgeUp', () => store.set('nudge', nudge += 1));
-bind('cycDn', () => store.set('cycle', mCycle = Math.max(mRed+5, mCycle-1)));
-bind('cycUp', () => store.set('cycle', mCycle = Math.min(400, mCycle+1)));
-bind('redDn', () => store.set('red', mRed = Math.max(10, mRed-1)));
-bind('redUp', () => store.set('red', mRed = Math.min(mCycle-5, mRed+1)));
+bind('nudgeDn', () => { const x = selX(); if (x) store.set('nudge_'+x.id, nudgeOf(x) - 1); });
+bind('nudgeUp', () => { const x = selX(); if (x) store.set('nudge_'+x.id, nudgeOf(x) + 1); });
 bind('sync', () => {
-  const t = Date.now()/1000, b = bandFor(t);
-  if (b && !store.get('cycleTouched', false)){ mCycle = b.cycle; mRed = b.red; }
-  nudge = 0; store.set('nudge', 0);
-  manual = {anchor:t, at:t}; store.set('manual', manual);
-  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(()=>{});
+  const x = selX(); if (!x) return;
+  const t = Date.now()/1000, b = bandFor(x.bands, t);
+  store.set('nudge_'+x.id, 0); store.set('manual_'+x.id, {anchor:t, at:t, cycle:b ? b.cycle : 200, red:b ? b.red : 40});
 });
-bind('clear', () => { manual = null; store.set('manual', null); nudge = 0; store.set('nudge', 0); });
-['cycDn','cycUp','redDn','redUp'].forEach(id => $(id).addEventListener('click', () => store.set('cycleTouched', true)));
+bind('clear', () => { const x = selX(); if (!x) return; store.set('manual_'+x.id, null); store.set('nudge_'+x.id, 0); });
+build(); loadSchedule();
 /* 放在桌上時讓螢幕保持亮著（系統不允許時就略過） */
 function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(()=>{}); }
 document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
@@ -377,7 +390,7 @@ function cwaView(g, warn, obs, fc, t){
   if (v.warn) v.wet = true;
   let temp = null, wind = null, uv = null, hum = null;
   try { const e = obs.records.Station[0].WeatherElement; temp = num(e.AirTemperature); wind = num(e.WindSpeed); uv = num(e.UVIndex); hum = num(e.RelativeHumidity); } catch (e) {}
-  v.cells = [];
+  v.cells = []; v.brief = {feel:feel !== null ? feel : temp, uv, wind};
   v.rainingNow = !!(fresh && g.mm > 0); v.gaugeShown = !!fresh;
   if (fresh) v.cells.push({k:'10 分鐘雨量', v:g.mm+' mm', n:g.name+' '+g.time});
   if (pop !== null) v.cells.push({k:'降雨機率', v:pop+'%', n:span+(wx ? '・'+wx : '')});
@@ -397,6 +410,11 @@ function showRain(v){
   $('rainMsg').textContent = head; $('rainMsg').className = v.wet ? 'wet' : '';
   $('rainNote').textContent = note; $('rainNote').className = v.warn ? 'wet' : '';
   $('rainSub').hidden = !v.sub; $('rainSub').textContent = v.sub || '';
+  const bf = v.brief || {}, bits = [];                 // 出門前要知道的：體感；紫外線和風只在明顯時才提（6 以上、每秒 8 公尺以上，門檻自訂）
+  if (bf.feel !== null && bf.feel !== undefined) bits.push('體感 '+bf.feel+'°C');
+  if (bf.uv >= 6) bits.push('紫外線'+uvLevel(bf.uv));
+  if (bf.wind >= 8) bits.push('風大，每秒 '+Math.round(bf.wind)+' 公尺');
+  $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('　');
   const box = $('wxCells'); box.textContent = '';
   for (const c of v.cells || []){
     const d = document.createElement('div'); d.className = 'cell';
@@ -407,7 +425,7 @@ function showRain(v){
 function rainForecastOnly(note, radar){
   fetch(WX).then(r => r.json()).then(d => {
     const t = Date.now()/1000, u = umbrella(d, null, t), c = d.current, r1 = x => Math.round(x*10)/10;
-    showRain(verdict({wet:u.wet, msg:u.msg, sub:note || '', warn:'', rainingNow:false, cells:[
+    showRain(verdict({wet:u.wet, msg:u.msg, sub:note || '', warn:'', rainingNow:false, brief:{feel:r1(c.apparent_temperature), uv:c.uv_index, wind:c.wind_speed_10m}, cells:[
       {k:'降雨機率', v:u.prob+'%', n:'一小時內・模型'}, {k:'紫外線', v:String(r1(c.uv_index)), n:uvLevel(c.uv_index)},
       {k:'氣溫', v:r1(c.temperature_2m)+'°C', n:'體感 '+r1(c.apparent_temperature)+'°C'}, {k:'風速', v:r1(c.wind_speed_10m)+' m/s', n:'模型預報'}]}, radar, t));
   }).catch(() => showRain(verdict({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', cells:[]}, radar, Date.now()/1000)));
@@ -453,7 +471,7 @@ addEventListener('touchend', () => { const go = pullY !== null && pullD >= 80; p
 addEventListener('touchcancel', () => { pullY = null; $('ptr').hidden = true; });
 /* 從背景回到頁面時，順便抓一次最新時刻表 */
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSchedule(); });
-labels(); render(); setInterval(render, 250);
+setInterval(render, 250);
 </script>
 </body>
 </html>
