@@ -1,5 +1,11 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3f5f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1210" media="(prefers-color-scheme: dark)">
 <title>過馬路時機</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="過馬路">
 <link rel="apple-touch-icon" href="icon.png">
@@ -18,8 +24,10 @@
   --bg:#0c1210; --panel:#151d1a; --fg:#e9f0ed; --muted:#93a39d; --line:#2a3531;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10; --ink-btn:#e9f0ed; --ink-btn-fg:#0c1210; color-scheme:dark }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--text);font-size:16px;line-height:1.5;
-  padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:16px;line-height:1.5;
+  padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:var(--muted);font-size:14px}
 header b{color:var(--fg);font-weight:600}
@@ -36,6 +44,7 @@ header b{color:var(--fg);font-weight:600}
 #leave{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
 #leaveMsg{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 #leaveMsg.go{color:var(--go)}
+#nexts{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:15px}
 .step{display:flex;align-items:center;gap:6px}
 .step output{min-width:4.2em;text-align:center;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
@@ -48,13 +57,15 @@ details>div{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 p{margin:0;color:var(--muted);font-size:14px}
 #src{font-size:13px;color:var(--muted);text-align:center}
 </style>
+</head>
+<body>
 <main>
-  <header><span><b>承德路一段 × 南京西路</b></span><span id="clock">--:--:--</span></header>
+  <header><span><b>南京西路 × 赤峰街</b></span><span id="clock">--:--:--</span></header>
 
   <section id="now" class="off" aria-live="off">
     <div id="word">尚未對時</div>
     <div id="secs">--</div>
-    <div id="sub">看到車道轉紅燈的那一刻，按下方「車道剛轉紅」</div>
+    <div id="sub">這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時</div>
     <div id="strip" hidden><i id="stripGo"></i><u id="stripNow"></u></div>
   </section>
 
@@ -62,13 +73,13 @@ p{margin:0;color:var(--muted);font-size:14px}
     <div id="leaveMsg">--</div>
     <div class="row"><span>走到路口要</span>
       <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
+    <div class="row"><span>之後可以過</span><span id="nexts"></span></div>
   </section>
-
-  <button class="main" id="sync">車道剛轉紅</button>
 
   <details id="adv">
     <summary>校正</summary>
     <div>
+      <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
       <div class="row"><span>一輪長度</span>
@@ -78,7 +89,7 @@ p{margin:0;color:var(--muted);font-size:14px}
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
       <button id="clear">清除我的對時，改用實測時刻表</button>
-      <p>車道紅燈＝你可以過。按「車道剛轉紅」會以那一刻為起點往後推算，對時 3 小時後失效。</p>
+      <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
     </div>
   </details>
   <div id="src"></div>
@@ -140,7 +151,7 @@ function render(){
   $('strip').hidden = !p;
   if (!p){
     now.className = 'off'; $('word').textContent = '尚未對時'; $('secs').textContent = '--';
-    $('sub').textContent = '看到車道轉紅燈的那一刻，按下方「車道剛轉紅」';
+    $('sub').textContent = '這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時'; $('nexts').textContent = '--';
     $('leaveMsg').textContent = '--'; $('leaveMsg').className = '';
   } else {
     const s = stateAt(p, t);
@@ -150,6 +161,7 @@ function render(){
     $('sub').textContent = s.go ? '秒後車道轉綠' : '秒後可以過';
     $('stripGo').style.width = (p.red/p.cycle*100)+'%';
     $('stripNow').style.left = (s.ph/p.cycle*100)+'%';
+    $('nexts').textContent = [1,2,3].map(k => hms(t - s.ph + k*p.cycle)).join('　');
     const w = leaveIn(p, t), lm = $('leaveMsg');
     if (w===null){ lm.textContent = '可過時間太短，調整下方秒數'; lm.className=''; }
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
@@ -187,3 +199,5 @@ function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'vi
 document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
 labels(); render(); setInterval(render, 250);
 </script>
+</body>
+</html>
