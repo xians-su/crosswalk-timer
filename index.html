@@ -18,19 +18,19 @@
    slate gray, cyan accent, sprout yellow marker; green/coral are reserved for the signal state. */
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
-  --go-bg:#0b8f5a; --go-fg:#ffffff; --wait-bg:#2b3038; --wait-fg:#ffffff; --wait-num:#ff8a66; --strip-go:#3fd69b;
-  --off-bg:#ffffff; --wet:#d4380d; --mark:#ffd84d;
+  --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de;
+  --off-bg:#ffffff; --wet:#b3401f;
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
-  --go-bg:#0e9c63; --go-fg:#ffffff; --wait-bg:#1c2026; --wait-fg:#eef1f4; --wait-num:#ff8a66; --strip-go:#3fd69b;
-  --off-bg:#1c2026; --wet:#ff8a66; --mark:#ffd84d; color-scheme:dark } }
+  --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
+  --off-bg:#1c2026; --wet:#ff8a63; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
-  --go-bg:#0e9c63; --go-fg:#ffffff; --wait-bg:#1c2026; --wait-fg:#eef1f4; --wait-num:#ff8a66; --strip-go:#3fd69b;
-  --off-bg:#1c2026; --wet:#ff8a66; --mark:#ffd84d; color-scheme:dark }
+  --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
+  --off-bg:#1c2026; --wet:#ff8a63; color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body,button,summary,a,input{touch-action:manipulation}
@@ -50,33 +50,38 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 
 #ptr{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--fg);color:var(--bg);font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px}
 
-/* signal block */
-#now{border-radius:20px;padding:14px 18px 16px;text-align:center;background:var(--wait-bg);color:var(--wait-fg);transition:background .25s}
-#now.go{background:var(--go-bg);color:var(--go-fg)}
+/* signal block: one box answers "go or wait", how long, and when to leave the desk */
+#now{border-radius:20px;padding:14px 18px 16px;text-align:center;background:var(--wait-bg);color:var(--wait);transition:background .25s,color .25s}
+#now.go{background:var(--go-bg);color:var(--go)}
 #now.off{background:var(--off-bg);color:var(--muted);border:1px solid var(--line)}
-#where{font-size:12.5px;letter-spacing:.04em;opacity:.8}
-#word{font-size:22px;font-weight:800;letter-spacing:.14em;margin-top:2px}
-#secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:.98;font-variant-numeric:tabular-nums;color:var(--wait-num)}
-#now.go #secs{color:var(--go-fg)}
-#now.off #secs{color:var(--muted)}
-#sub{font-size:14px;opacity:.9}
-#strip{position:relative;height:8px;border-radius:4px;margin-top:12px;background:rgba(255,255,255,.2)}
-#strip i{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--strip-go)}
-#now.go #strip i{background:rgba(255,255,255,.95)}
-#strip u{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;border-radius:2px;background:var(--mark);box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
+#where{font-size:12.5px;letter-spacing:.04em;color:var(--fg);opacity:.7}
+#word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
+#secs{font-family:var(--num);font-weight:800;font-size:clamp(88px,29vw,116px);line-height:1;font-variant-numeric:tabular-nums}
+#sub{font-size:14px;color:var(--fg)}
+#strip{position:relative;height:12px;border-radius:6px;background:var(--wait);overflow:hidden;margin-top:12px;opacity:.9}
+#strip i{position:absolute;top:0;bottom:0;left:0;background:var(--go)}
+#strip u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--fg);border-radius:2px}
+#leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--panel);color:var(--fg);text-align:left}
+#leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+#walk{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+#walk .lbl{font-size:11px}
+#walk .step{gap:2px}
+#walk button{min-width:40px;min-height:36px;padding:0;border-radius:9px;font-size:18px}
+#walk output{min-width:3.4em;font-size:14px}
+#leaveMsg.go{color:var(--go)}
 
-/* answer tiles */
-#tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tile{padding:10px 14px 11px;min-width:0}
-.tile b{display:block;font-size:19px;font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tile small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#leaveMsg.go{color:var(--go-bg)}
+/* umbrella answer */
+#umb{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px 11px}
+#umb>div{min-width:0}
+#rainMsg{display:block;font-size:19px;font-weight:800;line-height:1.3;white-space:nowrap}
+#rainNote{color:var(--muted);font-size:13px;text-align:right;line-height:1.4}
 #rainMsg.wet,#rainNote.wet{color:var(--wet)}
 
 /* next crossings */
-#nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;white-space:nowrap}
-#nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-#nexts span{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 8px}
+#nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;white-space:nowrap}
+#nextRow .lbl{color:var(--fg);opacity:.7}
+#nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
+#nexts span{background:var(--panel);border-radius:999px;padding:3px 8px}
 @media (max-width:359px){#nexts span:nth-child(3){display:none}}
 
 /* weather figures: one card, hairline grid */
@@ -87,14 +92,14 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 .cell b{display:block;font-family:var(--num);font-size:19px;font-weight:700;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums}
 #rainSub{font-size:13px;color:var(--muted);padding:0 2px}
 
-/* quiet list: settings, radar, camera */
-.group{overflow:hidden}
-details{padding:0 14px}
+/* low-key extras: settings, radar, camera — plain text rows, opened only when wanted */
+.group{padding:0 2px}
 details+details{border-top:1px solid var(--line)}
-summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;min-height:46px}
+summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:13px;color:var(--muted);min-height:38px}
 summary::-webkit-details-marker{display:none}
-summary::after{content:"";flex:none;width:7px;height:7px;margin-right:4px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+summary::after{content:"";flex:none;width:6px;height:6px;margin-right:4px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);transition:transform .15s;opacity:.7}
 details[open]>summary::after{transform:rotate(-135deg)}
+details[open]>summary{color:var(--fg);font-weight:600}
 details>div{display:flex;flex-direction:column;gap:10px;padding-bottom:14px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted)}
 .step{display:flex;align-items:center;gap:6px}
@@ -123,24 +128,26 @@ footer span:nth-child(odd){opacity:.8}
     <div id="secs">--</div>
     <div id="sub">這個時段沒有時刻表，到「設定與校正」對時</div>
     <div id="strip" hidden><i id="stripGo"></i><u id="stripNow"></u></div>
+    <div id="leave">
+      <b id="leaveMsg">--</b>
+      <span id="walk"><span class="lbl">走到路口要</span>
+        <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></span>
+    </div>
+    <div id="nextRow"><span class="lbl">之後可以過</span><span id="nexts"></span></div>
   </section>
 
-  <section id="tiles">
-    <div class="tile card"><span class="lbl">何時出發</span><b id="leaveMsg">--</b><small id="walkNote"></small></div>
-    <div class="tile card"><span class="lbl">要不要帶傘</span><b id="rainMsg">查詢中</b><small id="rainNote"></small></div>
+  <section id="umb" class="card">
+    <div><span class="lbl">要不要帶傘</span><b id="rainMsg">查詢中</b></div>
+    <div id="rainNote"></div>
   </section>
-
-  <div id="nextRow"><span class="lbl">之後可以過</span><span id="nexts"></span></div>
 
   <section id="wxCells" class="card"></section>
   <div id="rainSub" hidden></div>
 
-  <section class="group card">
+  <section class="group">
   <details id="adv">
     <summary>設定與校正</summary>
     <div>
-      <div class="row"><span>走到路口要</span>
-        <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
       <div class="row"><span>提早／延後</span>
@@ -240,19 +247,19 @@ function render(){
     now.className = s.go ? 'go' : '';
     $('word').textContent = s.go ? '可以過' : '先等等';
     $('secs').textContent = Math.ceil(s.left);
-    $('sub').textContent = s.go ? '秒後車道轉綠' : '秒後可以過';
+    $('sub').textContent = s.go ? '秒後不能過' : '秒後可以過';
     $('stripGo').style.width = (p.red/p.cycle*100)+'%';
     $('stripNow').style.left = (s.ph/p.cycle*100)+'%';
     $('nexts').innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
     const w = leaveIn(p, t), lm = $('leaveMsg');
-    if (w===null){ lm.textContent = '時間不夠過'; lm.className=''; }
+    if (w===null){ lm.textContent = '可過時間太短'; lm.className=''; }
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
     else { lm.textContent = Math.ceil(w)+' 秒後出發'; lm.className=''; }
   }
   $('srcNote').textContent = p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC;
 }
 function labels(){
-  $('walkOut').textContent = walk+' 秒'; $('walkNote').textContent = '走到路口 '+walk+' 秒'; $('crossOut').textContent = cross+' 秒';
+  $('walkOut').textContent = walk+' 秒'; $('crossOut').textContent = cross+' 秒';
   $('nudgeOut').textContent = (nudge>0?'+':'')+nudge+' 秒';
   $('cycOut').textContent = mCycle+' 秒'; $('redOut').textContent = mRed+' 秒';
 }
@@ -336,7 +343,8 @@ function verdict(v, radar, t){
   if (past && !v.gaugeShown) extra.push({k:'過去一小時', v:past.mm+' mm', n:'雷達估計 '+past.time});
   v.cells = extra.concat(v.cells || []);
   if (v.rainingNow){ v.wet = true; v.msg = '正在下雨，帶傘'; }
-  else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內會下雨，帶傘'; }
+  else if (fc && fc.mm >= 0.5){ v.wet = true; v.msg = '一小時內會下雨・雷達預估 '+fc.mm+' mm，帶傘'; }
+  else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內可能飄雨・雷達預估 '+fc.mm+' mm，建議帶傘'; }   // 0.5 mm 的分界是自訂的
   else if (fc){ v.wet = !!v.warn; v.msg = '一小時內不會下雨'; }
   return v;
 }
