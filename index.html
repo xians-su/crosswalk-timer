@@ -127,7 +127,6 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #memoClear{position:absolute;top:6px;right:8px;min-width:32px;min-height:32px;padding:0;border:0;border-radius:50%;color:var(--muted);display:grid;place-items:center}
 #memoClear svg{width:16px;height:16px;display:block}
 #memo .lbl{display:block;padding-right:30px}
-#memo .lbl span{margin-left:8px;letter-spacing:0;opacity:.75}
 #memoText{display:block;width:100%;margin:2px 0 0;padding:0 28px 0 0;border:0;outline:0;background:none;color:var(--fg);font:inherit;font-size:16px;line-height:1.5;resize:none;overflow:hidden}
 #memoText::placeholder{color:var(--muted);opacity:.7}
 
@@ -201,7 +200,7 @@ footer span:nth-child(odd){opacity:.8}
   <div id="rainSub" hidden></div>
 
   <section id="memo" class="card">
-    <label class="lbl" for="memoText">Memo<span>內容只存在你這支手機</span></label>
+    <label class="lbl" for="memoText">Memo</label>
     <button id="memoClear" aria-label="清除 Memo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
     <textarea id="memoText" rows="1" placeholder="ex: 識別證、水壺...etc" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
   </section>
