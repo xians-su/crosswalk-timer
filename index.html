@@ -92,6 +92,8 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #xs.focus .x:not(.open){background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
 #xs.focus .x.pin:not(.open){box-shadow:inset 0 0 0 1px var(--brand)}
 #xs.focus .x:not(.open) .xname{opacity:.75}
+/* just after a timetable change: the numbers are shown but visibly less certain */
+.x.shaky .secs,.x.shaky .xsum b{opacity:.45}
 /* a later crossing is chosen: white card with the company cyan, so it cannot be mistaken for the live red/green state */
 .x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 2px var(--brand)}
 .x.pin .secs,.x.pin .xsum b{color:var(--brand)}
@@ -263,6 +265,8 @@ footer span:nth-child(odd){opacity:.8}
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
       <div class="pair"><button id="sync">行人綠燈剛亮</button><button id="clear">清除對時</button></div>
+      <p id="calNote"></p>
+      <p id="clkNote"></p>
       <p>平常不用校正。某個時段不準時，先展開那個路口，在現場看到行人綠燈亮起的那一刻按「行人綠燈剛亮」，之後 3 小時以那一刻為準；「清除對時」回到時刻表。</p>
     </div>
   </details>
@@ -305,6 +309,20 @@ const store = {
   set(k, v){ try{ localStorage.setItem('xw_'+k, JSON.stringify(v)); }catch(e){} }
 };
 const SITE = '';   // 時刻表與頁面放在同一個網址下
+/* 手機時鐘可能差零點幾秒到幾秒。伺服器若在回應標頭附上毫秒級時間（X-Time），就跟它對時：連問三次，取來回最快的那次。
+   沒有這個標頭的主機就不修正。所有倒數都用 now()，不直接用手機時鐘 */
+let CLK = 0, clkAt = 0;
+const now = () => Date.now()/1000 + CLK;
+function clockSync(){
+  const one = () => { const p0 = performance.now(), w0 = Date.now();
+    return fetch(SITE + 'schedule.json?clk=' + w0, {method:'HEAD', cache:'no-store'}).then(r => { const rtt = performance.now() - p0, x = parseFloat(r.headers.get('X-Time'));
+      return x > 1e9 ? {rtt, off: x + rtt/2000 - (w0 + rtt)/1000} : null; }).catch(() => null); };
+  one().then(a => one().then(b => one().then(c => {
+    const best = [a, b, c].filter(Boolean).sort((p, q) => p.rtt - q.rtt)[0]; clkAt = Date.now();
+    if (best && best.rtt < 800){ CLK = Math.abs(best.off) < 0.05 ? 0 : best.off; clkNote(best); render(); }
+  })));
+}
+function clkNote(b){ $('clkNote').textContent = '手機時鐘' + (Math.abs(b.off) < 0.05 ? '與標準時間一致' : '比標準時間' + (b.off < 0 ? '快 ' : '慢 ') + Math.abs(b.off).toFixed(1) + ' 秒，已自動修正') + '。'; }
 function loadSchedule(){
   fetch(SITE + 'schedule.json', {cache:'no-cache'}).then(r => r.json()).then(s => {
     if (s.crossings && s.crossings.length){ DATA = s; store.set('sched2', s); build(); }
@@ -328,11 +346,20 @@ function bandFor(bands, t){
   const type = (dow===0||dow===6) ? 'we' : 'wd';
   return bands.find(b => b.days===type && sod>=b.from && sod<b.to) || null;
 }
+/* 換時制後號誌要一兩輪才對上新時制（2026-11-18 20:00 實測約 5 分鐘），這段時間標成「可能不準」 */
+const SHAKY = 360;
+function changedAt(bands, t){              // 若 t 落在剛換時制的那幾分鐘內，回傳已經過了幾秒；否則 null
+  const b = bandFor(bands, t); if (!b) return null;
+  const d = new Date((t + 8*3600)*1000), since = d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds() - b.from;
+  if (since >= SHAKY) return null;
+  const prev = bandFor(bands, t - since - 1);
+  return prev && (prev.cycle !== b.cycle || prev.anchor !== b.anchor || prev.red !== b.red) ? since : null;
+}
 function plan(x, t){
   const m = manualOf(x, t), n = nudgeOf(x);
   if (m) return {anchor:m.anchor+n, cycle:m.cycle, red:m.red, manual:m};
   const b = bandFor(bandsOf(x), t);
-  return b ? {anchor:b.anchor+n, cycle:b.cycle, red:b.red, manual:null} : null;
+  return b ? {anchor:b.anchor+n, cycle:b.cycle, red:b.red, manual:null, shaky:changedAt(bandsOf(x), t) !== null} : null;
 }
 const mod = (a,n) => ((a%n)+n)%n;
 function stateAt(p, t){
@@ -358,7 +385,7 @@ function upcoming(x, t, horizon){
       b = bandFor(bandsOf(x), cur); if (!b){ cur += 600; continue; }
       const d = new Date((cur + 8*3600)*1000); end = cur - (d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds()) + b.to;
     }
-    for (let s = cur + mod(b.anchor + n - cur, b.cycle); s < end && s <= t + horizon; s += b.cycle) if (s > t + 1) out.push(Math.round(s));
+    for (let s = cur + mod(b.anchor + n - cur, b.cycle); s < end && s <= t + horizon; s += b.cycle) if (s > t + 1 && (m || changedAt(bandsOf(x), s) === null)) out.push(Math.round(s));   // 剛換時制那幾分鐘的時刻不列
     cur = end + 1;
   }
   return out;
@@ -384,7 +411,7 @@ function build(){
     x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
             go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walkstep output'), nexts:q('.nexts'), lbl:q('.nextRow .lbl'), live:q('.live')};
     /* 點某個之後的時刻＝改成對那一班倒數；再點一次或按「回到即時」就回來 */
-    x.el.nexts.addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const v = +b.dataset.t; store.set('pin_'+x.id, Math.abs(pinOf(x, Date.now()/1000) - v) < 2 ? 0 : v); render(); });
+    x.el.nexts.addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const v = +b.dataset.t; store.set('pin_'+x.id, Math.abs(pinOf(x, now()) - v) < 2 ? 0 : v); render(); });
     x.el.live.addEventListener('click', () => { store.set('pin_'+x.id, 0); render(); });
     const nm = document.createElement('span'); nm.textContent = x.name; q('.xname').appendChild(nm); const dirEl = document.createElement('small'); q('.xname').appendChild(dirEl);
     const paint = () => { dirEl.textContent = dirOf(x) || ''; s.querySelectorAll('.opts button').forEach((b, i) => b.setAttribute('aria-pressed', i === optOf(x) ? 'true' : 'false')); };
@@ -429,7 +456,7 @@ function orderPaint(){
   }
 }
 function render(){
-  const t = Date.now()/1000;
+  const t = now();
   for (const x of DATA.crossings){
     const e = x.el; if (!e) continue;
     const p = plan(x, t), open = x.id === sel;
@@ -455,7 +482,8 @@ function render(){
     } else {
       e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
       e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
-      e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.go ? '秒後不能過' : '秒後可以過';
+      e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = p.shaky ? '剛換時制，這幾分鐘可能不準' : (s.go ? '秒後不能過' : '秒後可以過');
+      if (p.shaky){ e.card.classList.add('shaky'); e.sum2.textContent = '剛換時制，可能不準'; }
       e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
     }
     e.lbl.hidden = !!pin; e.live.hidden = !pin;
@@ -474,7 +502,7 @@ function labels(){
   for (const x of DATA.crossings) if (x.el) x.el.walk.textContent = walkOf(x)+' 秒';
   const x = selX(), n = x ? nudgeOf(x) : 0;
   $('crossOut').textContent = cross+' 秒'; $('nudgeOut').textContent = (n>0?'+':'')+n+' 秒';
-  $('selName').textContent = x ? x.name : '';
+  $('selName').textContent = x ? x.name : ''; calNote();
 }
 function bind(id, fn){ $(id).addEventListener('click', () => { fn(); labels(); render(); }); }
 bind('crossDn', () => store.set('cross', cross = Math.max(5, cross-5)));
@@ -483,9 +511,18 @@ bind('nudgeDn', () => { const x = selX(); if (x) store.set('nudge_'+x.id, nudgeO
 bind('nudgeUp', () => { const x = selX(); if (x) store.set('nudge_'+x.id, nudgeOf(x) + 1); });
 bind('sync', () => {
   const x = selX(); if (!x) return;
-  const t = Date.now()/1000, b = bandFor(bandsOf(x), t);
+  const t = now(), b = bandFor(bandsOf(x), t);
+  if (b){                                   // 先記下這一按和時刻表差幾秒，再改用這一按當起點
+    const d = mod(t - (b.anchor + nudgeOf(x)) + b.cycle/2, b.cycle) - b.cycle/2;
+    const log = store.get('cal_'+x.id, []).filter(r => t - r.t < 7200).concat([{t, d:Math.round(d*10)/10, plan:b.plan}]).slice(-6); store.set('cal_'+x.id, log);
+  }
   store.set('nudge_'+x.id, 0); store.set('manual_'+x.id, {anchor:t, at:t, cycle:b ? b.cycle : 200, red:b ? b.red : 40});
 });
+function calNote(){
+  const x = selX(), log = x ? store.get('cal_'+x.id, []).filter(r => now() - r.t < 7200) : [];
+  const say = d => (d >= 0 ? '晚 ' : '早 ') + Math.abs(d).toFixed(1) + ' 秒';
+  $('calNote').textContent = log.length ? x.name + '：你剛才按的比時刻表' + say(log[log.length-1].d) + (log.length > 1 ? '；最近 ' + log.length + ' 次平均' + say(log.reduce((a, r) => a + r.d, 0) / log.length) : '') + '（時制 ' + log[log.length-1].plan + '）。' : '';
+}
 bind('clear', () => { const x = selX(); if (!x) return; store.set('manual_'+x.id, null); store.set('nudge_'+x.id, 0); });
 /* 外觀：預設跟著系統；點右上角圖示依序切換 跟隨系統 → 淺色 → 深色 */
 let theme = store.get('theme', 'auto'); if (!['auto','light','dark'].includes(theme)) theme = 'auto';
@@ -497,7 +534,8 @@ function applyTheme(){
 }
 $('theme').addEventListener('click', () => { theme = {auto:'light', light:'dark', dark:'auto'}[theme]; store.set('theme', theme); applyTheme(); });
 applyTheme();
-build(); loadSchedule();
+build(); loadSchedule(); clockSync();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - clkAt > 1800000) clockSync(); });
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});   // 沒網路時也打得開
 /* 螢幕保持亮著很耗電，預設關閉；要立在桌上當看板時到 Setting 打開（系統不允許時就略過） */
 let wake = null;
@@ -753,8 +791,16 @@ function memoShow(){ const on = store.get('memoOn', false) === true; $('memo').h
 $('memoOn').addEventListener('click', () => { store.set('memoOn', !(store.get('memoOn', false) === true)); memoShow(); });
 memoShow();
 addEventListener('resize', memoFit);
-/* 每秒重畫一次（對齊整秒），頁面在背景時完全不畫 */
-function tick(){ if (document.visibilityState === 'visible') render(); setTimeout(tick, 1000 - Date.now() % 1000 + 15); }
+/* 每秒重畫一次，時間點對齊展開那張卡片的倒數（沒有展開就對齊整秒），頁面在背景時完全不畫 */
+function tick(){
+  let wait = 1000 - (now()*1000) % 1000;
+  if (document.visibilityState === 'visible'){
+    render();
+    const x = DATA.crossings.find(c => c.id === sel), t = now(), p = x && plan(x, t);
+    if (p){ const pin = pinOf(x, t), left = pin ? pin - t : stateAt(p, t).left, f = left - Math.floor(left); wait = (f > 0.03 ? f : 1) * 1000; }   // 展開那張的數字該跳的瞬間
+  }
+  setTimeout(tick, wait + 12);
+}
 tick();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
 </script>

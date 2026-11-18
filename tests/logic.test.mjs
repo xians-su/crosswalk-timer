@@ -9,7 +9,7 @@ const src = [
   'let cross = 25; const manualOf = () => null, nudgeOf = () => 0, bandsOf = x => x.bands;',
   cut('function bandFor', 'function plan('), cut('const mod =', '/* 最早何時出發'), cut('function leaveIn', '/* 從現在起'), cut('function upcoming', 'const hms ='),
   cut('const hms =', '\n'), cut('const airLevel', '\n'), cut('const rainWord', '\n'), cut('function verdict', '/* 氣象署：特報'), cut('const uvLevel', '\n'),
-  'return {bandFor, mod, stateAt, leaveIn, upcoming, hms, airLevel, rainWord, verdict, uvLevel};'].join('\n');
+  'return {bandFor, changedAt, mod, stateAt, leaveIn, upcoming, hms, airLevel, rainWord, verdict, uvLevel};'].join('\n');
 const F = new Function('DATA', src)(DATA);
 const at = s => Date.parse(s) / 1000; let n = 0; const ok = (name, fn) => { fn(); n++; console.log('ok  ', name); };
 const X = DATA.crossings.find(x => x.id === 'chifeng');
@@ -48,9 +48,17 @@ ok('departure: leave so that you arrive inside the window with time left to cros
 ok('upcoming times: within 30 minutes, in order, on each band\'s own cycle, also across a plan change', () => {
   for (const when of ['2026-11-18T18:00:10+08:00', '2026-11-18T19:50:00+08:00', '2026-11-21T23:45:00+08:00']) {
     const t = at(when), u = F.upcoming(X, t, 1800);
-    assert(u.length >= 8, 'at least 8 times'); assert(u.every((v, i) => v > t && v <= t + 1800 && (i === 0 || v > u[i - 1])));
+    assert(u.length >= 6, 'at least 6 times'); assert(u.every((v, i) => v > t && v <= t + 1800 && (i === 0 || v > u[i - 1])));
     for (const v of u){ const b = F.bandFor(X.bands, v + 1), off = F.mod(v - b.anchor, b.cycle); assert(off <= 1 || off >= b.cycle - 1, 'misaligned at ' + F.hms(v)); }
   }
+});
+ok('the first minutes after a timetable change are flagged, and no crossing times are offered inside them', () => {
+  const at20 = at('2026-11-18T20:00:00+08:00');                                         // weekday plan 11 -> 08
+  assert.equal(F.changedAt(X.bands, at20 + 30), 30); assert.equal(F.changedAt(X.bands, at20 + 359), 359);
+  assert.equal(F.changedAt(X.bands, at20 + 360), null); assert.equal(F.changedAt(X.bands, at20 - 5), null);
+  assert.equal(F.changedAt(X.bands, at('2026-11-19T00:00:30+08:00')), null);           // midnight: same plan before and after
+  const u = F.upcoming(X, at20 - 600, 1800); assert(u.some(v => v < at20) && u.some(v => v > at20 + 360));
+  assert(!u.some(v => v >= at20 && v < at20 + 360), 'a time inside the uncertain minutes was offered');
 });
 ok('rain wording by forecast amount, and the umbrella verdict', () => {
   assert.deepEqual([0.2, 0.5, 4.9, 5, 14.9, 15].map(F.rainWord), ['毛毛雨', '小雨', '小雨', '中雨', '中雨', '大雨']);
