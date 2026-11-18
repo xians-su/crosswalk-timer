@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Home-screen icon: four striding signal figures on a zebra crossing, in the company palette."""
+"""Home-screen icon: four figures crossing a zebra crossing, each caught at a different moment of the stride, in the company palette."""
 from PIL import Image, ImageDraw
 N = 1024
 GRAY, GRAY2, CYAN, GREEN, YELLOW, WHITE = (43, 48, 56), (27, 31, 37), (8, 185, 224), (159, 207, 46), (230, 228, 0), (255, 255, 255)
@@ -16,24 +16,28 @@ def limb(p, q, wd, col):
     d.line([p, q], fill=col, width=wd)
     for (px, py) in (p, q): d.ellipse((px - wd / 2, py - wd / 2, px + wd / 2, py + wd / 2), fill=col)
 
-def walker(cx, base, h, col, sprout=False):
-    """Mid-stride figure walking right: leaning torso, bent front knee, trailing back leg, opposite arm swing."""
-    wd = round(h * 0.125)
-    neck = (cx + h * 0.045, base - h * 0.77); hip = (cx - h * 0.015, base - h * 0.43)
+# four different moments of a stride: (front knee, front foot, back knee, back foot, back elbow, back hand, front elbow, front hand),
+# each as (x, y) in units of the figure's height, measured from the point under the hips
+POSES = {
+ 'reach':  ((.13,-.23), (.235, 0),   (-.10,-.22), (-.25,-.035), (-.095,-.585), (-.19,-.50), (.13,-.60),  (.225,-.555)),
+ 'pass':   ((.17,-.245), (.085,-.085), (-.03,-.215), (-.065, 0),  (-.10,-.59), (-.155,-.475), (.12,-.59), (.20,-.505)),
+ 'swing':  ((.10,-.215), (.20, 0),   (-.12,-.205), (-.235,-.03), (.11,-.585),  (.19,-.49),  (-.115,-.60), (-.215,-.565)),
+ 'push':   ((.10,-.215), (.20, 0),  (-.05,-.215), (-.20,-.10), (-.075,-.585), (-.14,-.475), (.13,-.60), (.22,-.53)),
+}
+def walker(cx, base, h, col, pose):
+    wd = round(h * 0.125); P = lambda v: (cx + v[0] * h, base + v[1] * h - (wd / 2 if v[1] == 0 else 0))
+    kf, ff, kb, fb, eb, hb, ef, hf = (P(v) for v in POSES[pose])
+    neck = (cx + h * 0.045, base - h * 0.77); hip = (cx - h * 0.015, base - h * 0.43); sh = (cx + h * 0.035, base - h * 0.71); aw = round(wd * 0.82)
+    limb(sh, eb, aw, col); limb(eb, hb, aw, col)                                 # far arm first so the body overlaps it
+    limb(hip, kb, wd, col); limb(kb, fb, wd, col)
     limb(neck, hip, round(wd * 1.3), col)
-    kf = (cx + h * 0.13, base - h * 0.23); limb(hip, kf, wd, col); limb(kf, (cx + h * 0.235, base - wd / 2), wd, col)      # front leg
-    kb = (cx - h * 0.10, base - h * 0.22); limb(hip, kb, wd, col); limb(kb, (cx - h * 0.25, base - wd / 2 - h * 0.035), wd, col)  # back leg, heel up
-    sh = (cx + h * 0.035, base - h * 0.71); aw = round(wd * 0.82)
-    eb = (cx - h * 0.095, base - h * 0.585); limb(sh, eb, aw, col); limb(eb, (cx - h * 0.19, base - h * 0.50), aw, col)     # back arm
-    ef = (cx + h * 0.13, base - h * 0.60); limb(sh, ef, aw, col); limb(ef, (cx + h * 0.225, base - h * 0.555), aw, col)     # front arm
+    limb(hip, kf, wd, col); limb(kf, ff, wd, col)
+    limb(sh, ef, aw, col); limb(ef, hf, aw, col)
     r = h * 0.1; hc = (cx + h * 0.075, base - h * 0.905)
     d.ellipse((hc[0] - r, hc[1] - r, hc[0] + r, hc[1] + r), fill=col)
-    if sprout:                                                                  # the sprout from the logo's "i"
-        s = h * 0.085; c = (hc[0], hc[1] - r - s * 1.3)
-        limb((c[0] - s, c[1]), (c[0] + s, c[1]), round(s * 0.66), YELLOW); limb((c[0], c[1] - s), (c[0], c[1] + s), round(s * 0.66), YELLOW)
 
-for i, col in enumerate((CYAN, GREEN, CYAN, GREEN)):
-    walker(142 + i * 238, top + 8, 430, col, sprout=(i == 3))
+for i, (col, pose, k) in enumerate(((CYAN, 'reach', 1.0), (GREEN, 'pass', 1.05), (CYAN, 'swing', 0.97), (GREEN, 'push', 1.02))):
+    walker(138 + i * 240, top + 8, 440 * k, col, pose)
 im.resize((180, 180), Image.LANCZOS).save('icon.png'); im.resize((512, 512), Image.LANCZOS).save('icon-512.png'); im.resize((48, 48), Image.LANCZOS).save('favicon.png')
 import sys
 if len(sys.argv) > 1:
