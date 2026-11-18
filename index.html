@@ -54,6 +54,15 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #theme svg>*{display:none}
 #theme[data-mode="auto"] .t-auto,#theme[data-mode="light"] .t-light,#theme[data-mode="dark"] .t-dark{display:inline}
 
+/* pull to refresh: a round icon that drops in from the top and turns as you pull */
+#ptr{position:fixed;z-index:20;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);width:36px;height:36px;margin-left:-18px;border-radius:50%;display:grid;place-items:center;
+  background:var(--panel);color:var(--muted);box-shadow:0 2px 10px rgba(0,0,0,.18);opacity:0;transform:translateY(-56px);pointer-events:none}
+#ptr svg{width:20px;height:20px;display:block}
+#ptr.ready{color:var(--brand)}
+#ptr.settle,main.settle{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .28s}
+#ptr.spin svg{animation:ptrspin .6s linear infinite}
+@keyframes ptrspin{to{transform:rotate(360deg)}}
+
 /* crossings: one card each. The open card answers go/wait, how long, and when to leave; the others show the same in one line */
 #xs{display:flex;flex-direction:column;gap:10px}
 .x{border-radius:20px;background:var(--wait-bg);color:var(--wait);transition:background .25s,color .25s;overflow:hidden}
@@ -84,10 +93,10 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
 .secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:1;font-variant-numeric:tabular-nums}
 .sub{font-size:14px;color:var(--fg)}
-.strip{position:relative;height:12px;border-radius:6px;background:var(--wait);margin-top:20px}
+.strip{position:relative;height:12px;border-radius:6px;background:var(--wait);margin-top:28px}
 .strip i{position:absolute;top:0;bottom:0;left:0;border-radius:6px 0 0 6px;background:var(--go)}
-.strip u{position:absolute;top:-8px;bottom:-5px;width:7px;margin-left:-3.5px;border-radius:3.5px;background:linear-gradient(#e6e400,#00afd5);transform:skewX(-10deg)}
-.strip u::after{content:"";position:absolute;left:50%;top:-11px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:#e6e400}
+.strip u{position:absolute;top:-11px;bottom:-7px;width:9px;margin-left:-4.5px;border-radius:4.5px;background:linear-gradient(#e6e400,#00afd5);transform:skewX(-10deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.strip u::after{content:"";position:absolute;left:50%;top:-14px;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#e6e400}
 .leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--pill);color:var(--fg);text-align:left}
 .leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .leaveMsg.go{color:var(--go)}
@@ -153,7 +162,7 @@ footer span:nth-child(odd){opacity:.8}
 <script>try{var t=JSON.parse(localStorage.getItem('xw_theme'));if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 </head>
 <body>
-<div id="ptr" hidden>放開重新整理</div>
+<div id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19.2 12a7.2 7.2 0 1 1-2.3-5.3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M17.6 2.9v4.4h-4.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
 <main>
   <header>
     <svg id="mark" viewBox="60 236 904 580" aria-hidden="true">
@@ -568,12 +577,41 @@ function takeKey(){ const m = location.hash.match(/^#cwa=(CWA-[A-Za-z0-9-]+)$/);
 takeKey(); window.addEventListener('hashchange', () => { if (takeKey()) rain(); });
 rain(); setInterval(rain, 300000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
-/* 加到主畫面後 iPhone 沒有內建的下拉重整，這裡自己做：在頁面最上方往下拉超過 80 點再放開 */
-let pullY = null, pullD = 0;
-addEventListener('touchstart', e => { pullD = 0; pullY = (window.scrollY <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null; }, {passive:true});
-addEventListener('touchmove', e => { if (pullY === null) return; pullD = e.touches[0].clientY - pullY; $('ptr').hidden = pullD < 80; }, {passive:true});
-addEventListener('touchend', () => { const go = pullY !== null && pullD >= 80; pullY = null; $('ptr').hidden = true; if (go) location.reload(); });
-addEventListener('touchcancel', () => { pullY = null; $('ptr').hidden = true; });
+/* 加到主畫面後 iPhone 沒有內建的下拉重整，這裡自己做：在頁面最上方往下拉，內容跟著手指移動（帶阻尼），
+   上方出現一個會轉的圖示；拉過門檻圖示變色，放開就重新整理，沒拉夠就彈回去 */
+const PTR = {el:$('ptr'), main:document.querySelector('main'), x:0, y:0, on:null, d:0, MAX:86, GO:58};
+function ptrPaint(d, settle){
+  const k = Math.min(d / PTR.GO, 1);
+  PTR.el.classList.toggle('settle', !!settle); PTR.main.classList.toggle('settle', !!settle);
+  PTR.main.style.transform = d > 0 ? 'translateY(' + d.toFixed(1) + 'px)' : '';
+  PTR.el.style.opacity = d > 0 ? Math.min(1, d / 24).toFixed(2) : 0;
+  PTR.el.style.transform = 'translateY(' + (Math.min(d, PTR.MAX) - 48).toFixed(1) + 'px)';
+  PTR.el.querySelector('svg').style.transform = PTR.el.classList.contains('spin') ? '' : 'rotate(' + Math.round(k * 300 - 300) + 'deg)';
+  PTR.el.classList.toggle('ready', d >= PTR.GO);
+}
+addEventListener('touchstart', e => {
+  PTR.on = null; PTR.d = 0;
+  if (window.scrollY <= 0 && e.touches.length === 1 && !PTR.el.classList.contains('spin')){ PTR.x = e.touches[0].clientX; PTR.y = e.touches[0].clientY; PTR.on = 'maybe'; }
+}, {passive:true});
+addEventListener('touchmove', e => {
+  if (!PTR.on) return;
+  const dx = e.touches[0].clientX - PTR.x, dy = e.touches[0].clientY - PTR.y;
+  if (PTR.on === 'maybe'){                       // 先看這一下是往下拉，還是橫向滑動或往上捲
+    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+    if (dy <= 0 || Math.abs(dx) > Math.abs(dy)){ PTR.on = null; return; }
+    PTR.on = 'pull';
+  }
+  if (e.cancelable) e.preventDefault();          // 自己移動內容，不讓系統的回彈疊上來
+  PTR.d = dy <= 0 ? 0 : PTR.MAX * (1 - Math.exp(-dy / 170));     // 阻尼：越拉越緊，最多移動 MAX
+  ptrPaint(PTR.d, false);
+}, {passive:false});
+function ptrEnd(){
+  if (PTR.on !== 'pull'){ PTR.on = null; return; }
+  PTR.on = null;
+  if (PTR.d >= PTR.GO){ PTR.el.classList.add('spin'); ptrPaint(PTR.GO - 10, true); setTimeout(() => location.reload(), 320); }
+  else ptrPaint(0, true);
+}
+addEventListener('touchend', ptrEnd); addEventListener('touchcancel', () => { PTR.d = 0; ptrEnd(); });
 /* 從背景回到頁面時，順便抓一次最新時刻表 */
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSchedule(); });
 /* 有些 iPhone 版本在一般區域連點兩下仍會放大：第二下若落在非按鈕處就擋掉 */
