@@ -49,7 +49,10 @@ ok('upcoming times: within 30 minutes, in order, on each band\'s own cycle, also
   for (const when of ['2026-11-18T18:00:10+08:00', '2026-11-18T19:50:00+08:00', '2026-11-21T23:45:00+08:00']) {
     const t = at(when), u = F.upcoming(X, t, 1800);
     assert(u.length >= 6, 'at least 6 times'); assert(u.every((v, i) => v > t && v <= t + 1800 && (i === 0 || v > u[i - 1])));
-    for (const v of u){ const b = F.bandFor(X.bands, v + 1), off = F.mod(v - b.anchor, b.cycle); assert(off <= 1 || off >= b.cycle - 1, 'misaligned at ' + F.hms(v)); }
+    for (const v of u){                         // each time sits on the rhythm of the plan in force, or of the plan just before it (its last cycle runs on after a change)
+      const fits = b => { const off = F.mod(v - b.anchor, b.cycle); return off <= 1 || off >= b.cycle - 1; };
+      assert(fits(F.bandFor(X.bands, v + 1)) || fits(F.bandFor(X.bands, v - 400)), 'misaligned at ' + F.hms(v));
+    }
   }
 });
 ok('timetable change, as measured at 赤峰街口 on 2026-11-18 20:00: the old cycle finishes, one transitional cycle, then the new plan', () => {
