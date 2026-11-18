@@ -164,8 +164,12 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 #more[open]>summary{font-weight:400;color:var(--muted)}
 #more>section,#more>footer{margin-top:4px}
 /* low-key extras: settings, radar, camera — plain text rows, opened only when wanted */
-.group{padding:0 2px}
-details+details{border-top:1px solid var(--line)}
+.group{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:0 14px}
+/* second level: titled rows inside one card; an opened row shows its content in an inset panel, one step in */
+.group details+details{border-top:1px solid var(--line)}
+.group summary{font-size:14.5px;color:var(--fg);min-height:48px}
+.group details[open]>summary{font-weight:700}
+.group details>div{background:var(--bg);border-radius:12px;padding:12px 12px 14px;margin:0 0 14px}
 summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:13px;color:var(--muted);min-height:38px}
 summary::-webkit-details-marker{display:none}
 summary::after{content:"";flex:none;width:6px;height:6px;margin-right:4px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);opacity:.7}
@@ -226,10 +230,10 @@ footer span:nth-child(odd){opacity:.8}
   </section>
 
   <details id="more">
-  <summary>設定・天氣細節・雷達・影像</summary>
+  <summary>設定</summary>
   <section class="group">
   <details id="adv">
-    <summary>設定與校正</summary>
+    <summary>一般</summary>
     <div>
       <h3 class="sec">路口順序<span>按住 ≡ 上下拖</span></h3>
       <div id="orderList"></div>
@@ -417,7 +421,7 @@ function render(){
     e.head.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (!p){
       e.card.className = 'x off' + (open ? ' open' : '');
-      e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到「設定與校正」對時'; e.strip.hidden = true;
+      e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到「設定」對時'; e.strip.hidden = true;
       e.leave.textContent = '--'; e.leave.className = 'leaveMsg'; e.nexts.textContent = ''; e.nexts.dataset.key = ''; e.lbl.hidden = false; e.live.hidden = true; e.sum1.textContent = '沒有時刻表'; e.sum2.textContent = '';
       continue;
     }
@@ -706,7 +710,7 @@ const memoSync = () => { $('memoClear').hidden = !memo.value; memoFit(); };
 memo.value = store.get('memo', ''); memoSync();
 memo.addEventListener('input', () => { store.set('memo', memo.value); memoSync(); });
 $('memoClear').addEventListener('click', () => { memo.value = ''; store.set('memo', ''); memoSync(); });
-/* Memo 預設關閉，在「設定與校正」裡打開；關掉時內容仍留著 */
+/* Memo 預設關閉，在「設定」的「一般」裡打開；關掉時內容仍留著 */
 function memoShow(){ const on = store.get('memoOn', false) === true; $('memo').hidden = !on; $('memoOn').setAttribute('aria-checked', on ? 'true' : 'false'); if (on) memoSync(); }
 $('memoOn').addEventListener('click', () => { store.set('memoOn', !(store.get('memoOn', false) === true)); memoShow(); });
 memoShow();
