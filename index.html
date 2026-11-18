@@ -71,8 +71,10 @@ p{margin:0;color:var(--muted);font-size:14px}
 #word{font-size:26px}
 #leaveMsg{margin-top:16px;padding:12px;border-radius:14px;background:var(--panel);color:var(--fg);font-size:22px}
 #leave{gap:12px}
-#nexts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;font-size:14px}
-#nexts span{border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+#nexts{display:flex;gap:10px;flex-wrap:nowrap;white-space:nowrap;font-size:15px}
+.row.one{flex-wrap:nowrap}
+@media (max-width:359px){#nexts span:nth-child(3){display:none}}
+.row.one>span:first-child{white-space:nowrap}
 #rain{display:flex;flex-direction:column;gap:6px}
 #wxCells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
 #wxCells:empty{display:none}
@@ -104,7 +106,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
   <section id="leave">
     <div class="row"><span>走到路口要</span>
       <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
-    <div class="row"><span>之後可以過</span><span id="nexts"></span></div>
+    <div class="row one"><span>之後可以過</span><span id="nexts"></span></div>
     <details id="adv">
       <summary>校正</summary>
       <div>
