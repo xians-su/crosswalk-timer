@@ -163,7 +163,7 @@ function chart(width, height, t0) {
   const barH = height - 13, x = t => Math.max(0, Math.min(width, (t - t0) / SPAN * width));
   let p = new Path(); p.addRoundedRect(new Rect(0, 0, width, barH), 4, 4); dc.addPath(p); dc.setFillColor(new Color(WAIT, 0.55)); dc.fillPath();
   dc.setFillColor(new Color(GO));
-  for (const [s, e] of wins) { if (x(e) - x(s) < 1) continue; p = new Path(); p.addRoundedRect(new Rect(x(s), 0, x(e) - x(s), barH), 4, 4); dc.addPath(p); dc.fillPath(); }
+  for (const [s, e] of wins) { const bw = x(e) - x(s); if (bw < 1) continue; const r = Math.min(4, bw / 2); p = new Path(); p.addRoundedRect(new Rect(x(s), 0, bw, barH), r, r); dc.addPath(p); dc.fillPath(); }
   dc.setFont(Font.mediumSystemFont(9)); dc.setTextColor(new Color("#8a9690"));
   const step = width < 200 ? 180 : 120;             // 每 3 或 2 分鐘一個刻度
   for (let m = Math.ceil(t0 / step) * step; m < t0 + SPAN - 30; m += step) {
@@ -176,32 +176,32 @@ function chart(width, height, t0) {
 if (change === null) {
   label(w, "這個時段沒有時刻表", 13);
 } else if (lock) {
-  label(w, inWin ? "可以過，還剩" : "先等等，還要", 12, fg);
+  if (fam === "accessoryRectangular") label(w, inWin ? "可以過，還剩" : "先等等，還要", 12, fg);
   timer(w, change, fam === "accessoryRectangular" ? 26 : 14, fg);
 } else if (!wide) {
   label(w, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
   timer(w, change, 40, stateColor);
-  w.addSpacer();
-  const img = w.addImage(chart(130, 34)); img.imageSize = new Size(130, 34);
+  w.addSpacer(null);
+  const img = w.addImage(chart(110, 34)); img.imageSize = new Size(110, 34);
 } else {
   const top = w.addStack(); top.layoutHorizontally();
   const L = top.addStack(); L.layoutVertically();
   label(L, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
   timer(L, change, 44, stateColor);
-  top.addSpacer();
+  top.addSpacer(null);
   const R = top.addStack(); R.layoutVertically();
   if (inWin && nextStart) { label(R, "下一次可過", 11); timer(R, nextStart, 18, fg); }
   if (depart !== null) { label(R, depart - now < 1 ? "現在出發剛好" : "出發倒數", 11); if (depart - now >= 1) timer(R, depart, 18, fg); }
-  w.addSpacer();
-  const img = w.addImage(chart(300, 40)); img.imageSize = new Size(300, 40);
+  w.addSpacer(null);
+  const img = w.addImage(chart(260, 40)); img.imageSize = new Size(260, 40);
   if (big) {
-    for (const k of [1, 2]) { w.addSpacer(4); const im = w.addImage(chart(300, 40, now + k * SPAN)); im.imageSize = new Size(300, 40); }
+    for (const k of [1, 2]) { w.addSpacer(4); const im = w.addImage(chart(260, 40, now + k * SPAN)); im.imageSize = new Size(260, 40); }
     w.addSpacer(8);
     label(w, "接下來可以過的時段", 11);
     for (const [s, e] of wins.filter(x => x[0] > now).slice(0, 4)) {
       const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
       label(row, hhmm(s, 8) + " 起 " + Math.round(e - s) + " 秒", 14, fg);
-      row.addSpacer();
+      row.addSpacer(null);
       timer(row, s, 14, dim);
     }
     w.addSpacer(6);
