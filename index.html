@@ -19,18 +19,18 @@
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
   --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de;
-  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12); --mark-gray:#595656;
+  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12); --mark-gray:#595656; --brand:#00a3c7;
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; color-scheme:dark } }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; color-scheme:dark }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; --brand:#2cc4ea; color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 *{touch-action:manipulation}
@@ -76,6 +76,11 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .x.open[data-opts] .xname small{display:none}
 .opts button{min-height:28px;min-width:0;padding:0 8px;border:0;border-radius:7px;font-size:12px;color:var(--fg);opacity:.7;background:none}
 .opts button[aria-pressed="true"]{background:var(--panel);opacity:1;font-weight:700}
+/* a later crossing is chosen: white card with the company cyan, so it cannot be mistaken for the live red/green state */
+.x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.x.pin .secs,.x.pin .xsum b{color:var(--brand)}
+.x.pin .word{font-size:22px;letter-spacing:.02em}
+.x.pin .leave,.x.pin .opts,.x.pin .nexts button[aria-pressed="false"]{background:var(--bg)}
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
 .secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:1;font-variant-numeric:tabular-nums}
 .sub{font-size:14px;color:var(--fg)}
@@ -100,8 +105,9 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .nexts button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 
 /* umbrella answer */
-#umb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;padding:10px 14px 11px}
-#wxLine{flex-basis:100%;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:8px;padding-top:7px}
+#umb{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px 11px}
+#umbR{text-align:right}
+#wxLine{color:var(--muted);font-size:12.5px;line-height:1.4}
 #umb>div{min-width:0}
 #rainMsg{display:block;font-size:19px;font-weight:800;line-height:1.3;white-space:nowrap}
 #rainNote{color:var(--muted);font-size:13px;text-align:right;line-height:1.4}
@@ -171,8 +177,7 @@ footer span:nth-child(odd){opacity:.8}
 
   <section id="umb" class="card">
     <div><span class="lbl">要不要帶傘</span><b id="rainMsg">查詢中</b></div>
-    <div id="rainNote"></div>
-    <div id="wxLine" hidden></div>
+    <div id="umbR"><div id="rainNote"></div><div id="wxLine" hidden></div></div>
   </section>
 
   <div id="rainSub" hidden></div>
@@ -275,6 +280,21 @@ function leaveIn(p, t, walk){
   }
   return null;
 }
+/* 從現在起 horizon 秒內，每一次「可以開始過」的時刻；跨到下一個時段會改用那個時段的時制 */
+function upcoming(x, t, horizon){
+  const out = [], m = manualOf(x, t), n = nudgeOf(x); let cur = t, guard = 0;
+  while (cur < t + horizon && guard++ < 40){
+    let b, end;
+    if (m){ b = m; end = t + horizon + 1; }
+    else {
+      b = bandFor(bandsOf(x), cur); if (!b){ cur += 600; continue; }
+      const d = new Date((cur + 8*3600)*1000); end = cur - (d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds()) + b.to;
+    }
+    for (let s = cur + mod(b.anchor + n - cur, b.cycle); s < end && s <= t + horizon; s += b.cycle) if (s > t + 1) out.push(Math.round(s));
+    cur = end + 1;
+  }
+  return out;
+}
 const hms = t => new Date((t+8*3600)*1000).toISOString().substr(11,8);
 
 /* 每個路口一張卡片：展開的那張是大字版，其餘收成一行 */
@@ -295,9 +315,9 @@ function build(){
     x.el.live.addEventListener('click', () => { store.set('pin_'+x.id, 0); render(); });
     const nm = document.createElement('span'); nm.textContent = x.name; q('.xname').appendChild(nm); const dirEl = document.createElement('small'); q('.xname').appendChild(dirEl);
     const paint = () => { dirEl.textContent = dirOf(x) || ''; s.querySelectorAll('.opts button').forEach((b, i) => b.setAttribute('aria-pressed', i === optOf(x) ? 'true' : 'false')); };
-    if (x.opts){                                   // 同一個路口有不同的橫越方向：展開後可切換，會記住
+    if (x.opts){                                   // 同一個路口有不同的橫越方向：展開後可切換，會記住；換方向時原本選的那一班不適用，先回到即時
       const box = q('.opts'); box.hidden = false; s.dataset.opts = '1';
-      x.opts.forEach((o, i) => { const b = document.createElement('button'); b.textContent = o.dir; b.addEventListener('click', () => { store.set('opt_'+x.id, i); store.set('manual_'+x.id, null); paint(); labels(); render(); }); box.appendChild(b); });
+      x.opts.forEach((o, i) => { const b = document.createElement('button'); b.textContent = o.dir; b.addEventListener('click', () => { store.set('opt_'+x.id, i); store.set('manual_'+x.id, null); store.set('pin_'+x.id, 0); paint(); labels(); render(); }); box.appendChild(b); });
     }
     paint();
     const toggle = ev => { if (ev.target.closest('.opts')) return; sel = sel === x.id ? '' : x.id; store.set('sel', sel); labels(); render(); };
@@ -329,9 +349,10 @@ function render(){
     if (pin){                                        // 選了之後的某一班：版面不變，倒數和出發時間都改成對那一班（展開、收合一致）
       const dep = pin - walk - t, ok = t + walk <= pin + p.red - cross;
       const leave2 = dep >= 1 ? durText(dep) + '後出發' : (ok ? '現在出發' : '這一班來不及');
-      e.card.className = 'x' + (open ? ' open' : '');
+      e.card.className = 'x pin' + (open ? ' open' : '');        // 白底、春樹青：和即時的紅綠區分開
+      e.strip.hidden = true;
       e.sum1.textContent = hms(pin) + ' 還有 ' + dur(pin - t); e.sum2.textContent = leave2;
-      e.word.textContent = '先等等'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過・' + hms(pin) + ' 這一班';
+      e.word.textContent = hms(pin) + ' 這一班'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過';
       e.leave.textContent = leave2; e.leave.className = 'leaveMsg' + (dep < 1 && ok ? ' go' : '');
     } else {
       e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
@@ -340,7 +361,7 @@ function render(){
       e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
     }
     e.lbl.hidden = !!pin; e.live.hidden = !pin;
-    const start0 = Math.round(t - s.ph), chips = [1,2,3,4,5,6].map(k => start0 + k*p.cycle);
+    const chips = upcoming(x, t, 1800);                 // 最遠到 30 分鐘後
     const key = chips.join(',') + '|' + pin;          // 內容沒變就不重畫，點擊才不會落空
     if (e.nexts.dataset.key !== key){
       e.nexts.dataset.key = key;
@@ -429,6 +450,8 @@ function gridAt(url){
     return part(hd.start + first*11, hd.start + last*11 + 9).then(b => ({mm:gridMax(new TextDecoder().decode(b)), at:hd.at, time:hd.time}));
   }).catch(() => null);
 }
+/* 一小時雨量換成口語（分界是自訂的，不是氣象署的定義）：不到 0.5 毫米毛毛雨、5 以下小雨、15 以下中雨、以上大雨 */
+const rainWord = mm => mm < 0.5 ? '毛毛雨' : mm < 5 ? '小雨' : mm < 15 ? '中雨' : '大雨';
 /* 帶傘結論：實測有雨 > 雷達預報一小時內有雨 > 沒有雷達資料時看降雨機率 */
 function verdict(v, radar, t){
   const fc = radar && radar.nowcast && t - radar.nowcast.at < 2700 ? radar.nowcast : null;
@@ -438,8 +461,8 @@ function verdict(v, radar, t){
   if (past && !v.gaugeShown) extra.push({k:'過去一小時', v:past.mm+' mm', n:'雷達估計 '+past.time});
   v.cells = extra.concat(v.cells || []);
   if (v.rainingNow){ v.wet = true; v.msg = '正在下雨，帶傘'; }
-  else if (fc && fc.mm >= 0.5){ v.wet = true; v.msg = '一小時內會下雨・雷達預估 '+fc.mm+' mm，帶傘'; }
-  else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內可能飄雨・雷達預估 '+fc.mm+' mm，建議帶傘'; }   // 0.5 mm 的分界是自訂的
+  else if (fc && fc.mm >= 0.5){ v.wet = true; v.msg = '一小時內有' + rainWord(fc.mm) + '，帶傘'; }
+  else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內可能有毛毛雨，建議帶傘'; }
   else if (fc){ v.wet = !!v.warn; v.msg = '一小時內不會下雨'; }
   return v;
 }
@@ -492,11 +515,11 @@ function showRain(v){
   $('rainMsg').textContent = head; $('rainMsg').className = v.wet ? 'wet' : '';
   $('rainNote').textContent = note; $('rainNote').className = v.warn ? 'wet' : '';
   $('rainSub').hidden = !v.sub; $('rainSub').textContent = v.sub || '';
-  const bf = v.brief || {}, bits = [];                 // 出門前要知道的：體感；紫外線和風只在明顯時才提（6 以上、每秒 8 公尺以上，門檻自訂）
-  if (bf.feel !== null && bf.feel !== undefined) bits.push('體感 '+bf.feel+'°C');
+  const bf = v.brief || {}, bits = [];                 // 體感接在原因後面；紫外線和風只在明顯時才提（6 以上、每秒 8 公尺以上，門檻自訂）
+  if (bf.feel !== null && bf.feel !== undefined) bits.push('體感 '+Math.round(bf.feel)+'°C');
   if (bf.uv >= 6) bits.push('紫外線'+uvLevel(bf.uv));
-  if (bf.wind >= 8) bits.push('風大，每秒 '+Math.round(bf.wind)+' 公尺');
-  $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('　');
+  if (bf.wind >= 8) bits.push('風大');
+  $('wxLine').hidden = !bits.length; $('wxLine').textContent = bits.join('・');
   const box = $('wxCells'); box.textContent = '';
   for (const c of v.cells || []){
     const d = document.createElement('div'); d.className = 'cell';
