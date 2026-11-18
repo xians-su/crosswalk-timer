@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f5f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c1210" media="(prefers-color-scheme: dark)">
-<title>過馬路時機</title>
+<title>春樹小幸運</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="過馬路">
+<meta name="apple-mobile-web-app-title" content="春樹小幸運">
+<meta name="description" content="過公司前的馬路都不用等">
 <link rel="apple-touch-icon" href="icon.png">
 <style>
 /* Layout: one screen, read from across a desk. State word + seconds on top, cycle strip, then when to leave. */
@@ -30,7 +31,7 @@ body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family
   padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:var(--muted);font-size:14px}
-header b{color:var(--fg);font-weight:600}
+header b{color:var(--fg);font-weight:700;font-size:20px}
 #clock{font-variant-numeric:tabular-nums}
 #now{border-radius:20px;padding:20px 20px 16px;text-align:center;background:var(--wait-bg);color:var(--wait);transition:background .3s,color .3s}
 #now.go{background:var(--go-bg);color:var(--go)}
@@ -47,7 +48,11 @@ header b{color:var(--fg);font-weight:600}
 #rain{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
 #rainMsg{font-size:22px;font-weight:700}
 #rainMsg.wet{color:var(--wait)}
-#rainSub{color:var(--muted);font-size:14px}
+#rainSub,#wxNow,#radarCap{color:var(--muted);font-size:14px}
+#rainWarn{color:var(--wait);font-weight:700;font-size:15px}
+#radar{display:block;position:relative;overflow:hidden;aspect-ratio:4/3;border-radius:12px;margin-top:10px;background:var(--bg)}
+#radar img{position:absolute;width:450%;max-width:none;left:-191.75%;top:-239%}
+#radar i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px;border-radius:50%;border:2px solid #14201c;background:#ffffff}
 #nexts{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:15px}
 .step{display:flex;align-items:center;gap:6px}
@@ -64,7 +69,7 @@ p{margin:0;color:var(--muted);font-size:14px}
 </head>
 <body>
 <main>
-  <header><span><b>南京西路 × 赤峰街</b></span><span id="clock">--:--:--</span></header>
+  <header><span><b id="name">春樹小幸運</b><br>過公司前的馬路都不用等</span><span id="clock">--:--:--</span></header>
 
   <section id="now" class="off" aria-live="off">
     <div id="word">尚未對時</div>
@@ -80,7 +85,14 @@ p{margin:0;color:var(--muted);font-size:14px}
     <div class="row"><span>之後可以過</span><span id="nexts"></span></div>
   </section>
 
-  <section id="rain"><div id="rainMsg">查詢天氣中</div><div id="rainSub"></div></section>
+  <section id="rain">
+    <div id="rainWarn" hidden></div>
+    <div id="rainMsg">查詢天氣中</div>
+    <div id="rainSub"></div>
+    <div id="wxNow" hidden></div>
+    <a id="radar" href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener" aria-label="開啟氣象署雷達回波頁"><img id="radarImg" alt="雷達回波圖"><i></i></a>
+    <div id="radarCap">雷達回波（樹林雷達）。白點是路口，畫面寬約 80 公里，顏色越暖雨越大</div>
+  </section>
 
   <details id="adv">
     <summary>校正</summary>
@@ -97,7 +109,7 @@ p{margin:0;color:var(--muted);font-size:14px}
       <div class="row"><label for="cwaKey">氣象署金鑰</label>
         <span class="step"><input id="cwaKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CWA-…" style="font:inherit;width:11em;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)"><button id="cwaSave">儲存</button></span></div>
       <button id="clear">清除我的對時，改用實測時刻表</button>
-      <p>填了氣象署金鑰，帶傘提示會改用附近雨量站的實測雨量；沒填就只用預報。金鑰只存在這支手機。</p>
+      <p>填了氣象署金鑰，帶傘提示會改用氣象署資料：附近雨量站的實測雨量、大同區降雨機率、天氣特報、氣溫與體感；沒填就只用國外模型的預報。金鑰只存在這支手機。</p>
       <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
     </div>
   </details>
@@ -176,7 +188,7 @@ function render(){
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
     else { lm.textContent = Math.ceil(w)+' 秒後出發'; lm.className=''; }
   }
-  $('src').textContent = p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC;
+  $('src').textContent = '南京西路 × 赤峰街。' + (p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC);
 }
 function labels(){
   $('walkOut').textContent = walk+' 秒'; $('crossOut').textContent = cross+' 秒';
@@ -232,16 +244,64 @@ function umbrella(d, g, t){
   if (prob >= 40 || fcNow) return {wet:true, msg:'可能下雨，建議帶傘', prob, g:fresh ? g : null};
   return {wet:false, msg:'不用帶傘', prob, g:fresh ? g : null};
 }
+/* 氣象署：特報、臺北站即時觀測、大同區逐時預報 */
+const CWA = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/';
+const CWA_Q = {
+  warn: 'W-C0033-001?format=JSON&locationName=' + encodeURIComponent('臺北市'),
+  obs: 'O-A0003-001?format=JSON&StationId=466920',
+  fc: 'F-D0047-061?format=JSON&LocationName=' + encodeURIComponent('大同區')
+};
+const num = v => { const n = parseFloat(v); return n > -90 ? n : null; };   // -99 等負值＝缺測
+function cwaView(g, warn, obs, fc, t){
+  const v = {wet:false, msg:'不用帶傘', sub:'', warn:'', now:''};
+  const fresh = g && t - g.at < 1800;
+  try { v.warn = warn.records.location[0].hazardConditions.hazards.map(x => x.info.phenomena + x.info.significance).filter((x, i, a) => a.indexOf(x) === i).join('、'); } catch (e) {}
+  let pop = null, wx = '', feel = null, span = '';
+  try {
+    const els = {}; fc.records.Locations[0].Location[0].WeatherElement.forEach(e => els[e.ElementName] = e.Time);
+    const cur = arr => arr.find(x => Date.parse(x.EndTime)/1000 > t) || arr[0];
+    const p = cur(els['3小時降雨機率']); pop = num(p.ElementValue[0].ProbabilityOfPrecipitation);
+    span = p.StartTime.substr(11,2) + '–' + p.EndTime.substr(11,2) + ' 時';
+    wx = cur(els['天氣現象']).ElementValue[0].Weather;
+    const at = els['體感溫度'].filter(x => Date.parse(x.DataTime)/1000 <= t).pop() || els['體感溫度'][0];
+    feel = num(at.ElementValue[0].ApparentTemperature);
+  } catch (e) {}
+  if (fresh && g.mm > 0){ v.wet = true; v.msg = '正在下雨，帶傘'; }
+  else if (pop !== null && pop >= 40){ v.wet = true; v.msg = '可能下雨，建議帶傘'; }
+  else if (pop === null && !fresh) v.msg = '查不到雨量資料';
+  if (v.warn) v.wet = true;
+  v.sub = (fresh ? g.name+'測站 '+g.time+' 前 10 分鐘雨量 '+g.mm+' mm。' : '') + (pop !== null ? span+'降雨機率 '+pop+'%'+(wx ? '（'+wx+'）' : '') : '');
+  try {
+    const e = obs.records.Station[0].WeatherElement, temp = num(e.AirTemperature), wind = num(e.WindSpeed), parts = [];
+    if (temp !== null) parts.push('氣溫 '+temp+'°C');
+    if (feel !== null) parts.push('體感 '+feel+'°C');
+    if (wind !== null) parts.push('風速 '+wind+' m/s');
+    v.now = parts.join('　');
+  } catch (e) { if (feel !== null) v.now = '體感 '+feel+'°C'; }
+  return v;
+}
+function showRain(v){
+  $('rainWarn').hidden = !v.warn; $('rainWarn').textContent = v.warn ? '臺北市 '+v.warn : '';
+  $('rainMsg').textContent = v.msg; $('rainMsg').className = v.wet ? 'wet' : '';
+  $('rainSub').textContent = v.sub;
+  $('wxNow').hidden = !v.now; $('wxNow').textContent = v.now || '';
+}
+function rainForecastOnly(note){
+  fetch(WX).then(r => r.json()).then(d => {
+    const u = umbrella(d, null, Date.now()/1000);
+    showRain({wet:u.wet, msg:u.msg, sub:(note || '')+'一小時內降雨機率 '+u.prob+'%（預報）', warn:'', now:''});
+  }).catch(() => showRain({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', now:''}));
+}
 function rain(){
+  $('radarImg').src = 'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0084-001.png?t=' + Math.floor(Date.now()/300000);
   const key = store.get('cwaKey', '');
-  const fc = fetch(WX).then(r => r.json());
-  const ga = key ? fetch(GAUGE + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(gauge).catch(() => 'fail') : Promise.resolve(null);
-  Promise.all([fc, ga]).then(([d, g]) => {
-    const u = umbrella(d, g === 'fail' ? null : g, Date.now()/1000);
-    $('rainMsg').textContent = u.msg; $('rainMsg').className = u.wet ? 'wet' : '';
-    const measured = u.g ? u.g.name+'測站 '+u.g.time+' 前 10 分鐘雨量 '+u.g.mm+' mm。' : (g === 'fail' ? '雨量站查不到（金鑰可能有誤）。' : '');
-    $('rainSub').textContent = measured+'一小時內降雨機率 '+u.prob+'%（預報）';
-  }).catch(() => { $('rainMsg').textContent = '查不到天氣'; $('rainMsg').className = ''; $('rainSub').textContent = '沒有網路或天氣服務沒回應'; });
+  if (!key) return rainForecastOnly('');
+  const get = u => fetch(u + '&Authorization=' + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => null);
+  Promise.all([get(GAUGE.replace('&Authorization=', '')), get(CWA + CWA_Q.warn), get(CWA + CWA_Q.obs), get(CWA + CWA_Q.fc)]).then(([gj, w, o, f]) => {
+    if (!gj && !w && !o && !f) return rainForecastOnly('氣象署查不到（金鑰可能有誤）。');
+    let g = null; try { g = gj && gauge(gj); } catch (e) {}
+    showRain(cwaView(g, w, o, f, Date.now()/1000));
+  });
 }
 $('cwaKey').value = store.get('cwaKey', '');
 $('cwaSave').addEventListener('click', () => { store.set('cwaKey', $('cwaKey').value.trim()); $('rainMsg').textContent = '查詢天氣中'; rain(); });
