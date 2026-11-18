@@ -9,13 +9,14 @@ import json, re, os
 D = os.path.dirname(os.path.abspath(__file__))
 sod = lambda s: int(s[:2]) * 3600 + int(s[3:]) * 60
 
-def bands(P, X, C):
+def bands(P, X, C, walk_phase=None):
     out = []
     for days in ('wd', 'we'):
         tab = P[days]
         for i, (frm, pid) in enumerate(tab):
             pl = P['plans'][pid]; K = C.get('per_plan', {}).get(pid, C.get('K', 0))
-            w = X['walk_phase'] if isinstance(X['walk_phase'], int) else X['walk_phase'][pl['type']]
+            wp = walk_phase if walk_phase is not None else X['walk_phase']
+            w = wp if isinstance(wp, int) else wp[pl['type']]
             clear = max(pl['ped'][w][3], X['min_clear'])          # 行人停 seconds at the end of the phase, never less than min_clear
             to = sod(tab[i + 1][0]) if i + 1 < len(tab) else 86400
             # Taipei midnight in Unix seconds is a multiple of every cycle length in use (checked here)
@@ -30,8 +31,14 @@ if __name__ == '__main__':
     XS = json.load(open(f'{D}/crossings.json')); PL = json.load(open(f'{D}/plans.json')); C = json.load(open(f'{D}/calib.json'))
     first = PL[XS[0]['code']]
     note = f"交工處時制表 {first['data_time'][:10]} 版・{XS[0]['name']}已用攝影機核對 {len(C.get('checked', {}))}/{len(first['plans'])} 套時制"
-    sched = {'crossings': [{'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'],
-                            'bands': bands(PL[X['code']], X, C if i == 0 else {})} for i, X in enumerate(XS)],
+    def crossing(i, X):
+        P, c = PL[X['code']], (C if i == 0 else {})
+        out = {'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'], 'bands': bands(P, X, c)}
+        if X.get('options'):      # several crossings at one junction: the page shows a switch
+            out['opts'] = [{'dir': o['dir'], 'bands': bands(P, X, c, o['walk_phase'])} for o in X['options']]
+            out['bands'] = out['opts'][0]['bands']; out['dir'] = out['opts'][0]['dir']
+        return out
+    sched = {'crossings': [crossing(i, X) for i, X in enumerate(XS)],
              'note': note, 'plan_time': first['data_time']}
     json.dump(sched, open(f'{D}/schedule.json', 'w'), ensure_ascii=False, indent=1)
     h = open(f'{D}/index.html').read()

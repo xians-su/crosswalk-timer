@@ -504,6 +504,324 @@
      "anchor": 108,
      "red": 38
     }
+   ],
+   "opts": [
+    {
+     "dir": "橫越承德路",
+     "bands": [
+      {
+       "days": "wd",
+       "from": 0,
+       "to": 3600,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 108,
+       "red": 38
+      },
+      {
+       "days": "wd",
+       "from": 3600,
+       "to": 19800,
+       "cycle": 90,
+       "plan": "06",
+       "anchor": 80,
+       "red": 33
+      },
+      {
+       "days": "wd",
+       "from": 19800,
+       "to": 25200,
+       "cycle": 120,
+       "plan": "01",
+       "anchor": 110,
+       "red": 36
+      },
+      {
+       "days": "wd",
+       "from": 25200,
+       "to": 34200,
+       "cycle": 200,
+       "plan": "09",
+       "anchor": 193,
+       "red": 40
+      },
+      {
+       "days": "wd",
+       "from": 34200,
+       "to": 46800,
+       "cycle": 200,
+       "plan": "04",
+       "anchor": 184,
+       "red": 50
+      },
+      {
+       "days": "wd",
+       "from": 46800,
+       "to": 61200,
+       "cycle": 200,
+       "plan": "02",
+       "anchor": 179,
+       "red": 50
+      },
+      {
+       "days": "wd",
+       "from": 61200,
+       "to": 72000,
+       "cycle": 200,
+       "plan": "11",
+       "anchor": 183,
+       "red": 50
+      },
+      {
+       "days": "wd",
+       "from": 72000,
+       "to": 82800,
+       "cycle": 180,
+       "plan": "08",
+       "anchor": 163,
+       "red": 46
+      },
+      {
+       "days": "wd",
+       "from": 82800,
+       "to": 86400,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 108,
+       "red": 38
+      },
+      {
+       "days": "we",
+       "from": 0,
+       "to": 3600,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 108,
+       "red": 38
+      },
+      {
+       "days": "we",
+       "from": 3600,
+       "to": 18000,
+       "cycle": 90,
+       "plan": "06",
+       "anchor": 80,
+       "red": 33
+      },
+      {
+       "days": "we",
+       "from": 18000,
+       "to": 25200,
+       "cycle": 120,
+       "plan": "01",
+       "anchor": 110,
+       "red": 36
+      },
+      {
+       "days": "we",
+       "from": 25200,
+       "to": 32400,
+       "cycle": 150,
+       "plan": "03",
+       "anchor": 149,
+       "red": 40
+      },
+      {
+       "days": "we",
+       "from": 32400,
+       "to": 43200,
+       "cycle": 150,
+       "plan": "12",
+       "anchor": 145,
+       "red": 39
+      },
+      {
+       "days": "we",
+       "from": 43200,
+       "to": 75600,
+       "cycle": 150,
+       "plan": "07",
+       "anchor": 145,
+       "red": 42
+      },
+      {
+       "days": "we",
+       "from": 75600,
+       "to": 82800,
+       "cycle": 150,
+       "plan": "13",
+       "anchor": 1,
+       "red": 40
+      },
+      {
+       "days": "we",
+       "from": 82800,
+       "to": 86400,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 108,
+       "red": 38
+      }
+     ]
+    },
+    {
+     "dir": "橫越南京西路",
+     "bands": [
+      {
+       "days": "wd",
+       "from": 0,
+       "to": 3600,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 45,
+       "red": 39
+      },
+      {
+       "days": "wd",
+       "from": 3600,
+       "to": 19800,
+       "cycle": 90,
+       "plan": "06",
+       "anchor": 40,
+       "red": 23
+      },
+      {
+       "days": "wd",
+       "from": 19800,
+       "to": 25200,
+       "cycle": 120,
+       "plan": "01",
+       "anchor": 45,
+       "red": 44
+      },
+      {
+       "days": "wd",
+       "from": 25200,
+       "to": 34200,
+       "cycle": 200,
+       "plan": "09",
+       "anchor": 83,
+       "red": 35
+      },
+      {
+       "days": "wd",
+       "from": 34200,
+       "to": 46800,
+       "cycle": 200,
+       "plan": "04",
+       "anchor": 80,
+       "red": 37
+      },
+      {
+       "days": "wd",
+       "from": 46800,
+       "to": 61200,
+       "cycle": 200,
+       "plan": "02",
+       "anchor": 81,
+       "red": 31
+      },
+      {
+       "days": "wd",
+       "from": 61200,
+       "to": 72000,
+       "cycle": 200,
+       "plan": "11",
+       "anchor": 80,
+       "red": 30
+      },
+      {
+       "days": "wd",
+       "from": 72000,
+       "to": 82800,
+       "cycle": 180,
+       "plan": "08",
+       "anchor": 79,
+       "red": 45
+      },
+      {
+       "days": "wd",
+       "from": 82800,
+       "to": 86400,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 45,
+       "red": 39
+      },
+      {
+       "days": "we",
+       "from": 0,
+       "to": 3600,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 45,
+       "red": 39
+      },
+      {
+       "days": "we",
+       "from": 3600,
+       "to": 18000,
+       "cycle": 90,
+       "plan": "06",
+       "anchor": 40,
+       "red": 23
+      },
+      {
+       "days": "we",
+       "from": 18000,
+       "to": 25200,
+       "cycle": 120,
+       "plan": "01",
+       "anchor": 45,
+       "red": 44
+      },
+      {
+       "days": "we",
+       "from": 25200,
+       "to": 32400,
+       "cycle": 150,
+       "plan": "03",
+       "anchor": 69,
+       "red": 39
+      },
+      {
+       "days": "we",
+       "from": 32400,
+       "to": 43200,
+       "cycle": 150,
+       "plan": "12",
+       "anchor": 69,
+       "red": 35
+      },
+      {
+       "days": "we",
+       "from": 43200,
+       "to": 75600,
+       "cycle": 150,
+       "plan": "07",
+       "anchor": 68,
+       "red": 34
+      },
+      {
+       "days": "we",
+       "from": 75600,
+       "to": 82800,
+       "cycle": 150,
+       "plan": "13",
+       "anchor": 69,
+       "red": 37
+      },
+      {
+       "days": "we",
+       "from": 82800,
+       "to": 86400,
+       "cycle": 120,
+       "plan": "05",
+       "anchor": 45,
+       "red": 39
+      }
+     ]
+    }
    ]
   }
  ],
