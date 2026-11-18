@@ -71,9 +71,11 @@ p{margin:0;color:var(--muted);font-size:14px}
 #src{font-size:13px;color:var(--muted);text-align:center}
 /* --- layout pass: one glance block on top, quiet lists below --- */
 #word{font-size:26px}
+#where{font-size:14px;font-weight:600;color:var(--fg);opacity:.75;margin-bottom:4px}
 #leaveMsg{margin-top:16px;padding:12px;border-radius:14px;background:var(--panel);color:var(--fg);font-size:22px}
 #leave{gap:12px}
-#nexts{display:flex;gap:10px;flex-wrap:nowrap;white-space:nowrap;font-size:15px}
+#nexts{display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap;font-size:13px}
+#nexts span{border:1px solid var(--line);border-radius:999px;padding:3px 7px}
 .row.one{flex-wrap:nowrap}
 @media (max-width:359px){#nexts span:nth-child(3){display:none}}
 .row.one>span:first-child{white-space:nowrap}
@@ -98,6 +100,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
   <header><span><b id="name">春樹小幸運</b><br>大大好人一生平安，過公司前馬路都不用等太久</span></header>
 
   <section id="now" class="off" aria-live="off">
+    <div id="where">南京西路 × 赤峰街口　橫越南京西路</div>
     <div id="word">尚未對時</div>
     <div id="secs">--</div>
     <div id="sub">這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時</div>
@@ -121,11 +124,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
           <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
         <div class="row"><span>過馬路本身要</span>
           <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
-        <div class="row"><label for="cwaKey">氣象署金鑰</label>
-          <span class="step"><input id="cwaKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CWA-…" style="font:inherit;width:11em;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)"><button id="cwaSave">儲存</button></span></div>
         <button id="clear">清除我的對時，改用實測時刻表</button>
-        <p>填了氣象署金鑰，帶傘提示會改用氣象署資料：附近雨量站的實測雨量、大同區降雨機率、天氣特報、臺北站的氣溫與紫外線；沒填就只用國外模型的預報。金鑰只存在這支手機。</p>
-        <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
+          <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
       </div>
     </details>
   </section>
@@ -230,7 +230,7 @@ function render(){
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
     else { lm.textContent = Math.ceil(w)+' 秒後出發'; lm.className=''; }
   }
-  $('src').textContent = '南京西路 × 赤峰街。' + (p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC);
+  $('src').textContent = '號誌：臺北市大同區南京西路與赤峰街口（交工處路口編號 SLWH710）。' + (p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC);
 }
 function labels(){
   $('walkOut').textContent = walk+' 秒'; $('crossOut').textContent = cross+' 秒';
@@ -372,8 +372,9 @@ function rain(){
     showRain(cwaView(g, w, o, f, Date.now()/1000));
   });
 }
-$('cwaKey').value = store.get('cwaKey', '');
-$('cwaSave').addEventListener('click', () => { store.set('cwaKey', $('cwaKey').value.trim()); $('rainMsg').textContent = '查詢天氣中'; rain(); });
+/* 氣象署金鑰不放在頁面上：用「網址#cwa=金鑰」開一次，就存在這支手機 */
+function takeKey(){ const m = location.hash.match(/^#cwa=(CWA-[A-Za-z0-9-]+)$/); if (!m) return false; store.set('cwaKey', m[1]); try { history.replaceState(null, '', location.pathname); } catch (e) { location.hash = ''; } return true; }
+takeKey(); window.addEventListener('hashchange', () => { if (takeKey()) rain(); });
 rain(); setInterval(rain, 300000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
 labels(); render(); setInterval(render, 250);
