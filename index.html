@@ -348,8 +348,9 @@ function bandFor(bands, t){
   return bands.find(b => b.days===type && sod>=b.from && sod<b.to) || null;
 }
 const mod = (a,n) => ((a%n)+n)%n;
-/* 換時制的規律（2026-11-18 20:00 用攝影機實測，兩個路口一致）：號誌先把舊時制進行中的那一輪跑完，
-   接著停等到新時制的下一個週期起點，之後照新時制走。新時制的第一輪可能還差幾秒，所以標成「可能不準」。
+/* 換時制的規律（2026-11-18 20:00 與 23:00 用攝影機實測，兩個路口、兩次都一致）：號誌先把舊時制進行中的那一輪跑完，
+   中間夾一個過渡輪，從新時制的第二輪起完全照新時制走。過渡輪的長短抓不準（實測和這裡的算法差過 5、9、21 秒），
+   所以那一輪標成「抓不準」，其餘照常。
    windows() 照這個規律列出一段時間內每一次「可以過」的 [開始, 結束, 是否可能不準] */
 const samePlan = (a, b) => !!a && !!b && a.cycle === b.cycle && a.anchor === b.anchor && a.red === b.red && a.c0 === b.c0;
 function bandStart(t, b){ const s = Math.floor(t), d = new Date((s + 8*3600)*1000); return s - (d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds()) + b.from; }
@@ -365,7 +366,7 @@ function windows(x, t0, t1){
     if (changedIn){ const sOld = T + mod(prev.c0 - T, prev.cycle); from = sOld + mod(b.c0 - sOld, b.cycle); }      // 新時制真正開始的時刻
     const to = changedOut ? E + mod(b.c0 - E, b.cycle) : E;                                                        // 換走之前，把進行中的這一輪跑完
     for (let s = from + mod(b.anchor + n - from, b.cycle); s < to; s += b.cycle)
-      out.push([s, s + b.red, (changedIn && s < from + b.cycle) || (changedOut && s >= E)]);
+      out.push([s, s + b.red, changedIn && s < from + b.cycle]);     // 只有新時制的第一輪抓不準
     cur = E + 1;
   }
   return out.filter(w => w[1] > t0 && w[0] < t1).sort((p, q) => p[0] - q[0]);
@@ -383,7 +384,7 @@ function leaveFrom(ws, t, walk){
   for (const w of ws.slice(0, 8)){ const dep = Math.max(t, w[0] - walk); if (dep + walk <= w[1] - cross) return dep - t; }
   return null;
 }
-/* 從現在起 horizon 秒內可以預約的時刻；換時制前後那幾輪因為可能不準，不列 */
+/* 從現在起 horizon 秒內可以預約的時刻；換時制的過渡輪抓不準，不列 */
 function upcoming(x, t, horizon){
   return windows(x, t, t + horizon).filter(w => w[0] > t + 1 && w[0] <= t + horizon && !w[2]).map(w => Math.round(w[0]));
 }
@@ -479,8 +480,8 @@ function render(){
     } else {
       e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
       e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
-      e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.shaky ? '剛換時制，這一輪可能差幾秒' : (s.go ? '秒後不能過' : '秒後可以過') + (x.approx ? '（估計值，這個路口每輪會差幾秒）' : '');
-      if (s.shaky){ e.card.classList.add('shaky'); e.sum2.textContent = '剛換時制，可能差幾秒'; }
+      e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.shaky ? '換時制中，這一輪抓不準' : (s.go ? '秒後不能過' : '秒後可以過') + (x.approx ? '（估計值，這個路口每輪會差幾秒）' : '');
+      if (s.shaky){ e.card.classList.add('shaky'); e.sum2.textContent = '換時制中，這一輪抓不準'; }
       e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
     }
     e.lbl.hidden = !!pin; e.live.hidden = !pin;

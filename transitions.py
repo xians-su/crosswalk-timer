@@ -2,7 +2,8 @@
 """Check the timetable-change rule against camera logs.  Usage: transitions.py LOG.csv [LOG.csv ...]
 
 The rule the page uses (see windows() in index.html): at a timetable change the signal finishes the cycle of the old
-plan that is in progress, then holds until the next cycle start of the new plan, then runs the new plan.
+plan that is in progress, runs one transitional cycle, and from the second cycle on follows the new plan exactly.
+The transitional cycle is not predictable (measured 5 to 21 s away from "hold until the new plan's next cycle start").
 For every change inside the logs, and every crossing with a `lamp`, this prints the lamp events the camera saw from
 7 minutes before to 15 minutes after, each with its distance from what the rule predicts. Small numbers = the rule holds.
 Coarse logs (one frame a second) are good to about +-1.5 s, fine logs to about +-0.2 s."""
@@ -31,7 +32,7 @@ def main(files):
                 new, _ = band_at(X['bands'], T + 1); old, _ = band_at(X['bands'], T - 1)
                 if (old['cycle'], old['anchor'], old['red']) == (new['cycle'], new['anchor'], new['red']): continue
                 s_old = T + mod(old['c0'] - T, old['cycle']); s_new = s_old + mod(new['c0'] - s_old, new['cycle'])
-                pred = [(k + mod(old['lamp']['on'] - k, old['cycle']), 'old plan') for k in np.arange(s_old - 3 * old['cycle'], s_old - 1, old['cycle'])]
+                pred = [(k + mod(old['lamp']['on'] - k, old['cycle']), 'old plan') for k in np.arange(s_old - 5 * old['cycle'], s_old - 1, old['cycle'])]
                 pred += [(k + mod(new['lamp']['on'] - k, new['cycle']), 'new plan') for k in np.arange(s_new, T + 900, new['cycle'])]
                 print(f"\n{X['name']}  {hm(T)}  plan {old['plan']} -> {new['plan']} (cycle {old['cycle']} -> {new['cycle']} s): old cycle ends {hm(s_old)[6:]}, new plan starts {hm(s_new)[6:]}, hold {s_new - s_old:.0f} s")
                 first_new = True

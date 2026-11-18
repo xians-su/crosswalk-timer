@@ -52,16 +52,16 @@ ok('upcoming times: within 30 minutes, in order, on each band\'s own cycle, also
     for (const v of u){ const b = F.bandFor(X.bands, v + 1), off = F.mod(v - b.anchor, b.cycle); assert(off <= 1 || off >= b.cycle - 1, 'misaligned at ' + F.hms(v)); }
   }
 });
-ok('timetable change, as measured at 赤峰街口 on 2026-11-18 20:00: the old cycle finishes, then a hold, then the new plan', () => {
+ok('timetable change, as measured at 赤峰街口 on 2026-11-18 20:00: the old cycle finishes, one transitional cycle, then the new plan', () => {
   const T = at('2026-11-18T20:00:00+08:00'), hm = s => at('2026-11-18T' + s + '+08:00');
   // the camera saw the lamp go red at 20:01:15 (old plan's rhythm) and next at 20:05:02 (new plan), nothing in between
-  const a = F.stateOf(X, hm('20:01:30')); assert.equal(a.go, true, 'old plan still running after 20:00'); assert.equal(a.shaky, true);
+  const a = F.stateOf(X, hm('20:01:30')); assert.equal(a.go, true, 'old plan still running after 20:00'); assert.equal(a.shaky, false);
   for (const when of ['20:02:30', '20:02:45', '20:04:00']) assert.equal(F.stateOf(X, hm(when)).go, false, 'holding at ' + when);   // the new timetable alone would say "go" until 20:02:51
   const b = F.stateOf(X, hm('20:02:30')); assert.equal(Math.round(hm('20:02:30') + b.left), hm('20:05:01')); assert.equal(b.shaky, true);
   assert.equal(F.stateOf(X, hm('20:05:10')).go, true);
   const c = F.stateOf(X, hm('20:09:00')); assert.equal(c.shaky, false, 'back to normal from the second new cycle');
   const u = F.upcoming(X, T - 600, 1800).map(F.hms);
-  assert(u.includes('19:57:55') && u.includes('20:08:01')); assert(!u.includes('20:01:15') && !u.includes('20:05:01'), 'the two uncertain crossings are not offered');
+  assert(u.includes('19:57:55') && u.includes('20:01:15') && u.includes('20:08:01')); assert(!u.includes('20:05:01'), 'the transitional crossing is not offered');
   assert.equal(F.stateOf(X, at('2026-11-19T00:00:30+08:00')).shaky, false);          // midnight: same plan before and after, nothing changes
 });
 ok('rain wording by forecast amount, and the umbrella verdict', () => {
