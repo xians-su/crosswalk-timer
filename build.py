@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """crossings.json + plans.json + calib.json -> schedule.json, and the same data embedded in index.html as offline fallback.
 Model per crossing: a cycle starts when (seconds-of-day - offset - K) % cycle == 0; the phases follow in order.
-People may cross during phase `walk_phase`, from its start for (its length - clear) seconds.
+People may cross during phase `walk_phase` (per phase type where the plans differ), from its start until the
+pedestrian signal's own stop time before the phase ends (行人停, at least min_clear seconds).
 K (seconds) comes from camera checks: calib.json {"K": 0, "per_plan": {"11": 1}, "checked": {...}} — these apply to the
 first crossing (the one check.py measures); other crossings use K = 0 until they get their own check."""
 import json, re, os
@@ -9,16 +10,18 @@ D = os.path.dirname(os.path.abspath(__file__))
 sod = lambda s: int(s[:2]) * 3600 + int(s[3:]) * 60
 
 def bands(P, X, C):
-    out = []; w = X['walk_phase']
+    out = []
     for days in ('wd', 'we'):
         tab = P[days]
         for i, (frm, pid) in enumerate(tab):
             pl = P['plans'][pid]; K = C.get('per_plan', {}).get(pid, C.get('K', 0))
+            w = X['walk_phase'] if isinstance(X['walk_phase'], int) else X['walk_phase'][pl['type']]
+            clear = max(pl['ped'][w][3], X['min_clear'])          # 行人停 seconds at the end of the phase, never less than min_clear
             to = sod(tab[i + 1][0]) if i + 1 < len(tab) else 86400
             # Taipei midnight in Unix seconds is a multiple of every cycle length in use (checked here)
             assert (8 * 3600) % pl['cycle'] == 0 and 86400 % pl['cycle'] == 0, f"cycle {pl['cycle']} breaks the midnight model"
             b = {'days': days, 'from': sod(frm), 'to': to, 'cycle': pl['cycle'], 'plan': pid,
-                 'anchor': (pl['offset'] + K + sum(pl['p'][:w])) % pl['cycle'], 'red': pl['p'][w] - X['clear']}
+                 'anchor': (pl['offset'] + K + sum(pl['p'][:w])) % pl['cycle'], 'red': pl['p'][w] - clear}
             if X['code'] == 'SLWH710': b['lampRed'] = pl['p'][0] + pl['p'][2] + 2      # what check.py expects the camera to see
             out.append(b)
     return out

@@ -8,7 +8,10 @@ URL = 'https://www.ttcx.dot.gov.taipei/cpt/api/TimingPlan/pdf/'
 PLAN = re.compile(r'(?:^|\s)(\d{2})\s+(\d{2,3})\s+(\d{1,3})\s+(\d)\s+([0-9A-F]{2})\s+((?:\d+\s*)+)$')
 
 def parse(txt, X):
-    wd, we, plans, times, data_time = [], [], {}, None, None
+    wd, we, plans, times, data_time, last = [], [], {}, None, None, None
+    def ped(text):   # the line under a plan: 黃,全紅,行人閃,行人停 for each phase
+        g = re.findall(r'(\d+),(\d+),(\d+),(\d+)', text)
+        if g and last and 'ped' not in plans[last]: plans[last]['ped'] = [[int(v) for v in t] for t in g]
     for line in txt.splitlines():
         m = re.search(r'資料時間：([\d\- :]+)', line)
         if m: data_time = m.group(1).strip()
@@ -25,19 +28,20 @@ def parse(txt, X):
                 pairs = {(times[i], ids[i]) for i in idx}
                 assert len(pairs) <= 1, f'days differ within weekday/weekend group: {s}'
                 tab.extend(pairs)
-            times = None; continue
+            ped(s); times = None; continue
         elif ',' not in s and not s.startswith('路口'):
             m = PLAN.search(s)
-        else: m = None
+        else: m = None; ped(s)
         if m:
             pid, cyc, off, _, typ, ph = m.groups(); p = [int(x) for x in ph.split()]
-            assert len(p) == X['phases'] and sum(p) == int(cyc), f'plan {pid}: phases {p} vs cycle {cyc}'
-            plans[pid] = {'cycle': int(cyc), 'offset': int(off), 'p': p}
+            assert len(p) in X['phases'] and sum(p) == int(cyc), f'plan {pid}: phases {p} vs cycle {cyc}'
+            plans[pid] = {'cycle': int(cyc), 'offset': int(off), 'type': typ, 'p': p}; last = pid
     for tab in (wd, we):
         tab.sort(); assert tab and tab[0][0] == '00:00', 'table must start at 00:00'
         # merge consecutive rows with the same plan
         tab[:] = [list(r) for i, r in enumerate(tab) if i == 0 or r[1] != tab[i - 1][1]]
         assert all(pid in plans for _, pid in tab), 'table refers to an unknown plan'
+    for pid, pl in plans.items(): assert len(pl.get('ped', [])) == len(pl['p']), f'plan {pid}: pedestrian timings missing'
     assert data_time and len(plans) >= 3
     return {'source': URL + X['code'], 'data_time': data_time, 'intersection': f"{X['full']} ({X['code']})", 'wd': wd, 'we': we,
             'plans': dict(sorted(plans.items()))}
