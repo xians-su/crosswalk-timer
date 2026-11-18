@@ -1,6 +1,8 @@
 <title>過馬路時機</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="過馬路">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
 /* Layout: one screen, read from across a desk. State word + seconds on top, cycle strip, then when to leave. */
 :root{
@@ -79,141 +81,8 @@ p{margin:0;color:var(--muted);font-size:14px}
       <p>車道紅燈＝你可以過。按「車道剛轉紅」會以那一刻為起點往後推算，對時 3 小時後失效。</p>
     </div>
   </details>
-  <details id="wid">
-    <summary>主畫面小工具</summary>
-    <div>
-      <p>小工具顯示和上面一樣的燈號倒數，加一條未來 10 分鐘的時間軸（綠色是可以過的時段）。數字會自己倒數，不用打開任何東西。</p>
-      <p>1. App Store 安裝免費的 Scriptable。<br>2. 按下面的按鈕複製程式碼，在 Scriptable 按右上「＋」貼上，取名「過馬路」。<br>3. 回主畫面長按空白處 → 加入 Scriptable 小工具 → 長按小工具「編輯」→ Script 選「過馬路」。</p>
-      <button class="main" id="copyW">複製小工具程式碼</button>
-      <p id="copyMsg" hidden></p>
-      <textarea id="wOut" hidden readonly rows="6" style="width:100%;font:12px ui-monospace,monospace;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px"></textarea>
-      <p>時刻表會自動更新，不用重貼。程式碼會帶入你上面設定的「走到路口要幾秒」，改了秒數才需要重新複製貼上。系統每隔幾分鐘才重新整理小工具一次：倒數到 0 之後數字會往上跳，代表燈已經變了，這時看時間軸上的時鐘時間，或點小工具開啟頁面。中型小工具另外會顯示出發倒數；大型再多 30 分鐘時間軸和接下來 4 次可過的時刻。</p>
-    </div>
-  </details>
   <div id="src"></div>
 </main>
-<script type="text/plain" id="widgetSrc">// 過馬路時機 小工具（Scriptable）— 南京西路 × 赤峰街口
-let BANDS = __BANDS__;   // 內建備份；下面會先抓最新版
-const fm = FileManager.local(), cache = fm.joinPath(fm.documentsDirectory(), "crosswalk-schedule.json");
-try {
-  const r = new Request("__URL__schedule.json"); r.timeoutInterval = 5;
-  const s = await r.loadJSON();
-  if (s.bands && s.bands.length) { BANDS = s.bands; fm.writeString(cache, JSON.stringify(s)); }
-} catch (e) {
-  try { if (fm.fileExists(cache)) BANDS = JSON.parse(fm.readString(cache)).bands; } catch (e2) {}
-}
-const WALK = __WALK__;   // 從座位走到路口的秒數
-const CROSS = __CROSS__; // 過馬路本身的秒數
-const NUDGE = __NUDGE__;
-
-function bandFor(t) {
-  const d = new Date((t + 8 * 3600) * 1000);
-  const dow = d.getUTCDay(), sod = d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds();
-  const type = (dow === 0 || dow === 6) ? "we" : "wd";
-  const b = BANDS.find(b => b.days === type && sod >= b.from && sod < b.to);
-  return b ? { b, end: t - sod + b.to } : null;
-}
-const mod = (a, n) => ((a % n) + n) % n;
-// 從 t 起、horizon 秒內所有「可以過」的區段 [開始, 結束]（Unix 秒）
-function windows(t, horizon) {
-  const out = []; let cur = t, guard = 0;
-  while (cur < t + horizon && guard++ < 50) {
-    const f = bandFor(cur);
-    if (!f) { cur += 600; continue; }
-    const { b, end } = f, anchor = b.anchor + NUDGE;
-    for (let s = cur - mod(cur - anchor, b.cycle); s < end && s < t + horizon; s += b.cycle)
-      if (s >= end - (b.to - b.from) && s + b.red > t && s + b.red <= end) out.push([s, s + b.red]);
-    cur = end + 1;
-  }
-  return out;
-}
-
-const now = Date.now() / 1000;
-const SPAN = 600;                                  // 圖表涵蓋未來 10 分鐘
-const wins = windows(now, 1900);
-const inWin = wins.length && wins[0][0] <= now;
-const change = wins.length ? (inWin ? wins[0][1] : wins[0][0]) : null;   // 下一次變燈
-const nextStart = wins.length ? (inWin ? (wins[1] || [null])[0] : wins[0][0]) : null;
-// 出發時刻：走 WALK 秒抵達時，還夠 CROSS 秒過完
-let depart = null;
-for (const [s, e] of wins) { const d = Math.max(now, s - WALK); if (d + WALK <= e - CROSS) { depart = d; break; } }
-
-const fam = config.widgetFamily || "small";
-const big = fam === "large" || fam === "extraLarge";
-const lock = fam.startsWith("accessory"), wide = fam === "medium" || big;
-const w = new ListWidget();
-const fg = lock ? Color.white() : Color.dynamic(new Color("#14201c"), new Color("#e9f0ed"));
-const dim = lock ? Color.white() : Color.dynamic(new Color("#5d6b66"), new Color("#93a39d"));
-const GO = "#1fae7a", WAIT = "#d9603b";
-const stateColor = lock ? Color.white() : new Color(inWin ? GO : WAIT);
-if (!lock) { w.backgroundColor = Color.dynamic(new Color("#ffffff"), new Color("#151d1a")); w.setPadding(12, 14, 10, 14); }
-w.url = "__URL__";
-
-function label(parent, s, size, color) { const x = parent.addText(s); x.font = Font.mediumSystemFont(size); x.textColor = color || dim; x.lineLimit = 1; return x; }
-function timer(parent, sec, size, color) {
-  const x = parent.addDate(new Date(sec * 1000)); x.applyTimerStyle();
-  x.font = Font.boldRoundedSystemFont(size); x.textColor = color; x.minimumScaleFactor = 0.5; x.lineLimit = 1; return x;
-}
-function hhmm(sec, n) { const d = new Date((sec + 8 * 3600) * 1000); return d.toISOString().substr(11, n || 5); }
-
-// 時間軸圖：紅底＝先等等，綠塊＝可以過，下方標時鐘時間
-function chart(width, height, t0) {
-  t0 = t0 || now;
-  const dc = new DrawContext(); dc.size = new Size(width, height); dc.opaque = false; dc.respectScreenScale = true;
-  const barH = height - 13, x = t => Math.max(0, Math.min(width, (t - t0) / SPAN * width));
-  let p = new Path(); p.addRoundedRect(new Rect(0, 0, width, barH), 4, 4); dc.addPath(p); dc.setFillColor(new Color(WAIT, 0.55)); dc.fillPath();
-  dc.setFillColor(new Color(GO));
-  for (const [s, e] of wins) { const bw = x(e) - x(s); if (bw < 1) continue; const r = Math.min(4, bw / 2); p = new Path(); p.addRoundedRect(new Rect(x(s), 0, bw, barH), r, r); dc.addPath(p); dc.fillPath(); }
-  dc.setFont(Font.mediumSystemFont(9)); dc.setTextColor(new Color("#8a9690"));
-  const step = width < 200 ? 180 : 120;             // 每 3 或 2 分鐘一個刻度
-  for (let m = Math.ceil(t0 / step) * step; m < t0 + SPAN - 30; m += step) {
-    dc.setFillColor(new Color("#8a9690")); dc.fillRect(new Rect(x(m), barH, 1, 3));
-    dc.drawText(hhmm(m), new Point(Math.min(x(m) + 2, width - 26), barH + 2));
-  }
-  return dc.getImage();
-}
-
-if (change === null) {
-  label(w, "這個時段沒有時刻表", 13);
-} else if (lock) {
-  if (fam === "accessoryRectangular") label(w, inWin ? "可以過，還剩" : "先等等，還要", 12, fg);
-  timer(w, change, fam === "accessoryRectangular" ? 26 : 14, fg);
-} else if (!wide) {
-  label(w, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
-  timer(w, change, 40, stateColor);
-  w.addSpacer(null);
-  const img = w.addImage(chart(110, 34)); img.imageSize = new Size(110, 34);
-} else {
-  const top = w.addStack(); top.layoutHorizontally();
-  const L = top.addStack(); L.layoutVertically();
-  label(L, inWin ? "可以過，還剩" : "先等等，還要", 13, stateColor);
-  timer(L, change, 44, stateColor);
-  top.addSpacer(null);
-  const R = top.addStack(); R.layoutVertically();
-  if (inWin && nextStart) { label(R, "下一次可過", 11); timer(R, nextStart, 18, fg); }
-  if (depart !== null) { label(R, depart - now < 1 ? "現在出發剛好" : "出發倒數", 11); if (depart - now >= 1) timer(R, depart, 18, fg); }
-  w.addSpacer(null);
-  const img = w.addImage(chart(260, 40)); img.imageSize = new Size(260, 40);
-  if (big) {
-    for (const k of [1, 2]) { w.addSpacer(4); const im = w.addImage(chart(260, 40, now + k * SPAN)); im.imageSize = new Size(260, 40); }
-    w.addSpacer(8);
-    label(w, "接下來可以過的時段", 11);
-    for (const [s, e] of wins.filter(x => x[0] > now).slice(0, 4)) {
-      const row = w.addStack(); row.layoutHorizontally(); row.centerAlignContent();
-      label(row, hhmm(s, 8) + " 起 " + Math.round(e - s) + " 秒", 14, fg);
-      row.addSpacer(null);
-      timer(row, s, 14, dim);
-    }
-    w.addSpacer(6);
-    const f = bandFor(now);
-    if (f) label(w, "一輪 " + f.b.cycle + " 秒，可過 " + f.b.red + " 秒；" + hhmm(f.end) + " 換時制", 11);
-  }
-}
-// 請系統在下一次變燈後重新整理（系統不保證準時；過時的話數字會往上跳，圖表上的時鐘時間仍然正確）
-w.refreshAfterDate = new Date(((change || now) + 1) * 1000);
-if (config.runsInWidget) Script.setWidget(w); else if (big) await w.presentLarge(); else if (wide) await w.presentMedium(); else await w.presentSmall();
-Script.complete();
-</script>
 <script>
 /* ---- 實測時刻表（由 VPS 校準後填入；之後純靠手機時鐘計算，不需連線）----
    days: 'wd' 週一至五, 'we' 週六日；from/to: 當天秒數；cycle: 一輪秒數；
@@ -313,15 +182,8 @@ bind('sync', () => {
 });
 bind('clear', () => { manual = null; store.set('manual', null); nudge = 0; store.set('nudge', 0); });
 ['cycDn','cycUp','redDn','redUp'].forEach(id => $(id).addEventListener('click', () => store.set('cycleTouched', true)));
-$('copyW').addEventListener('click', () => {
-  const code = $('widgetSrc').textContent
-    .replace('__BANDS__', JSON.stringify(BANDS)).replace('__WALK__', walk).replace('__CROSS__', cross)
-    .replace('__NUDGE__', nudge).replace(/__URL__/g, SITE);
-  const msg = $('copyMsg'), out = $('wOut'); msg.hidden = false;
-  const fallback = () => { out.hidden = false; out.value = code; out.focus(); out.select(); msg.textContent = '無法自動複製。請全選下方文字後複製。'; };
-  if (navigator.clipboard && navigator.clipboard.writeText)
-    navigator.clipboard.writeText(code).then(() => { msg.textContent = '已複製（走到路口 '+walk+' 秒）。到 Scriptable 貼上。'; }, fallback);
-  else fallback();
-});
+/* 放在桌上時讓螢幕保持亮著（系統不允許時就略過） */
+function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(()=>{}); }
+document.addEventListener('visibilitychange', keepAwake); document.addEventListener('click', keepAwake, {once:true}); keepAwake();
 labels(); render(); setInterval(render, 250);
 </script>
