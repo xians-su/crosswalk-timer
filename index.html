@@ -95,7 +95,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
 </head>
 <body>
 <main>
-  <header><span><b id="name">春樹小幸運</b><br>大大好人一生平安，過公司前馬路都不用等太久</span><span id="clock">--:--:--</span></header>
+  <header><span><b id="name">春樹小幸運</b><br>大大好人一生平安，過公司前馬路都不用等太久</span></header>
 
   <section id="now" class="off" aria-live="off">
     <div id="word">尚未對時</div>
@@ -210,7 +210,6 @@ const hms = t => new Date((t+8*3600)*1000).toISOString().substr(11,8);
 
 function render(){
   const t = Date.now()/1000;
-  $('clock').textContent = hms(t);
   const p = plan(t), now = $('now');
   $('strip').hidden = !p;
   if (!p){
