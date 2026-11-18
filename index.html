@@ -9,7 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="春樹小幸運">
 <meta name="description" content="大大好人一生平安，過公司前馬路都不用等太久">
-<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=2">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 /* Layout: one screen, read from across a desk. State word + seconds on top, cycle strip, then when to leave. */
 :root{
@@ -286,6 +288,41 @@ function umbrella(d, g, t){
   if (prob >= 40 || fcNow) return {wet:true, msg:'可能下雨，建議帶傘', prob, g:fresh ? g : null};
   return {wet:false, msg:'不用帶傘', prob, g:fresh ? g : null};
 }
+/* 氣象署雷達降雨格點（不用金鑰）：1.3 公里網格、每 10 分鐘更新。只抓路口周邊 3×3 格（約 4 公里見方）的最大值。
+   檔案是固定寬度的數字串，所以用 Range 只下載需要的幾 KB。格點座標是 TWD67：路口＝東經 121.5106、北緯 25.0547 */
+const GRID = {nowcast:'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Forecast/F-B0046-001.json', past:'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-B0045-001.json'};
+const GX = 441, IX = Math.round((121.5106 - 118) / 0.0125), IY = Math.round((25.0547 - 20) / 0.0125);
+function gridHead(buf){
+  const txt = new TextDecoder().decode(buf), i = txt.indexOf('"content"', txt.indexOf('"contents"'));
+  const j = txt.indexOf('"', txt.indexOf(':', i)) + 1, dt = /"DateTime":\s*"([^"]+)"/.exec(txt);
+  if (i < 0 || j < 1 || !dt) throw new Error('grid header');
+  return {start:new TextEncoder().encode(txt.slice(0, j)).length, at:Date.parse(dt[1])/1000, time:dt[1].substr(11,5)};
+}
+function gridMax(text){
+  const tok = text.split(','); let mx = 0;
+  for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++){ const v = parseFloat(tok[dy*GX + dx]); if (!isFinite(v)) throw new Error('grid value'); if (v > mx) mx = v; }   // 負值＝無資料或無降雨
+  return mx;
+}
+function gridAt(url){
+  const part = (a, b) => fetch(url, {headers:{Range:'bytes='+a+'-'+b}, cache:'no-store'}).then(r => r.status === 206 ? r.arrayBuffer() : Promise.reject(r.status));
+  return part(0, 4095).then(gridHead).then(hd => {
+    const first = (IY-1)*GX + (IX-1), last = (IY+1)*GX + (IX+1);
+    return part(hd.start + first*11, hd.start + last*11 + 9).then(b => ({mm:gridMax(new TextDecoder().decode(b)), at:hd.at, time:hd.time}));
+  }).catch(() => null);
+}
+/* 帶傘結論：實測有雨 > 雷達預報一小時內有雨 > 沒有雷達資料時看降雨機率 */
+function verdict(v, radar, t){
+  const fc = radar && radar.nowcast && t - radar.nowcast.at < 2700 ? radar.nowcast : null;
+  const past = radar && radar.past && t - radar.past.at < 2700 ? radar.past : null;
+  const extra = [];
+  if (fc) extra.push({k:'一小時內預估', v:fc.mm+' mm', n:'雷達預報 '+fc.time});
+  if (past && !v.gaugeShown) extra.push({k:'過去一小時', v:past.mm+' mm', n:'雷達估計 '+past.time});
+  v.cells = extra.concat(v.cells || []);
+  if (v.rainingNow){ v.wet = true; v.msg = '正在下雨，帶傘'; }
+  else if (fc && fc.mm > 0){ v.wet = true; v.msg = '一小時內會下雨，帶傘'; }
+  else if (fc){ v.wet = !!v.warn; v.msg = '一小時內不會下雨'; }
+  return v;
+}
 /* 氣象署：特報、臺北站即時觀測、大同區逐時預報 */
 const CWA = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/';
 const CWA_Q = {
@@ -316,11 +353,11 @@ function cwaView(g, warn, obs, fc, t){
   let temp = null, wind = null, uv = null, hum = null;
   try { const e = obs.records.Station[0].WeatherElement; temp = num(e.AirTemperature); wind = num(e.WindSpeed); uv = num(e.UVIndex); hum = num(e.RelativeHumidity); } catch (e) {}
   v.cells = [];
+  v.rainingNow = !!(fresh && g.mm > 0); v.gaugeShown = !!fresh;
   if (fresh) v.cells.push({k:'10 分鐘雨量', v:g.mm+' mm', n:g.name+' '+g.time});
   if (pop !== null) v.cells.push({k:'降雨機率', v:pop+'%', n:span+(wx ? '・'+wx : '')});
   if (uv !== null) v.cells.push({k:'紫外線', v:String(uv), n:uvLevel(uv)});
-  if (temp !== null) v.cells.push({k:'氣溫', v:temp+'°C', n:hum !== null ? '濕度 '+hum+'%' : ''});
-  if (feel !== null) v.cells.push({k:'體感', v:feel+'°C', n:'大同區預報'});
+  if (temp !== null) v.cells.push({k:'氣溫', v:temp+'°C', n:feel !== null ? '體感 '+feel+'°C' : (hum !== null ? '濕度 '+hum+'%' : '')});
   if (wind !== null) v.cells.push({k:'風速', v:wind+' m/s', n:'臺北站'});
   return v;
 }
@@ -335,14 +372,13 @@ function showRain(v){
     box.appendChild(d);
   }
 }
-function rainForecastOnly(note){
+function rainForecastOnly(note, radar){
   fetch(WX).then(r => r.json()).then(d => {
-    const u = umbrella(d, null, Date.now()/1000);
-    const c = d.current, r1 = x => Math.round(x*10)/10;
-    showRain({wet:u.wet, msg:u.msg, sub:note || '', warn:'', cells:[
-      {k:'降雨機率', v:u.prob+'%', n:'一小時內'}, {k:'紫外線', v:String(r1(c.uv_index)), n:uvLevel(c.uv_index)}, {k:'氣溫', v:r1(c.temperature_2m)+'°C', n:'濕度 '+c.relative_humidity_2m+'%'},
-      {k:'體感', v:r1(c.apparent_temperature)+'°C', n:'模型預報'}, {k:'風速', v:r1(c.wind_speed_10m)+' m/s', n:'模型預報'}]});
-  }).catch(() => showRain({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', cells:[]}));
+    const t = Date.now()/1000, u = umbrella(d, null, t), c = d.current, r1 = x => Math.round(x*10)/10;
+    showRain(verdict({wet:u.wet, msg:u.msg, sub:note || '', warn:'', rainingNow:false, cells:[
+      {k:'降雨機率', v:u.prob+'%', n:'一小時內・模型'}, {k:'紫外線', v:String(r1(c.uv_index)), n:uvLevel(c.uv_index)},
+      {k:'氣溫', v:r1(c.temperature_2m)+'°C', n:'體感 '+r1(c.apparent_temperature)+'°C'}, {k:'風速', v:r1(c.wind_speed_10m)+' m/s', n:'模型預報'}]}, radar, t));
+  }).catch(() => showRain(verdict({wet:false, msg:'查不到天氣', sub:'沒有網路或天氣服務沒回應', warn:'', cells:[]}, radar, Date.now()/1000)));
 }
 /* 雷達圖與即時影像：點開才載入，收合就停 */
 function loadRadar(){ if ($('radarBox').open) $('radarImg').src = 'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0084-001.png?t=' + Math.floor(Date.now()/300000); }
@@ -364,15 +400,15 @@ document.addEventListener('visibilitychange', () => { if ($('camBox').open) docu
 function rain(){
   loadRadar();
   const key = store.get('cwaKey', '');
-  if (!key) return rainForecastOnly('');
+  const radarP = Promise.all([gridAt(GRID.nowcast), gridAt(GRID.past)]).then(([nowcast, past]) => ({nowcast, past}));
+  if (!key) return radarP.then(radar => rainForecastOnly('', radar));
   const get = u => fetch(u + '&Authorization=' + encodeURIComponent(key)).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => null);
-  Promise.all([get(GAUGE.replace('&Authorization=', '')), get(CWA + CWA_Q.warn), get(CWA + CWA_Q.obs), get(CWA + CWA_Q.fc)]).then(([gj, w, o, f]) => {
-    if (!gj && !w && !o && !f) return rainForecastOnly('氣象署查不到（金鑰可能有誤）。');
+  Promise.all([get(GAUGE.replace('&Authorization=', '')), get(CWA + CWA_Q.warn), get(CWA + CWA_Q.obs), get(CWA + CWA_Q.fc), radarP]).then(([gj, w, o, f, radar]) => {
+    if (!gj && !w && !o && !f) return rainForecastOnly('氣象署查不到（金鑰可能有誤）。', radar);
     let g = null; try { g = gj && gauge(gj); } catch (e) {}
-    showRain(cwaView(g, w, o, f, Date.now()/1000));
+    const t = Date.now()/1000; showRain(verdict(cwaView(g, w, o, f, t), radar, t));
   });
 }
-/* 氣象署金鑰不放在頁面上：用「網址#cwa=金鑰」開一次，就存在這支手機 */
 function takeKey(){ const m = location.hash.match(/^#cwa=(CWA-[A-Za-z0-9-]+)$/); if (!m) return false; store.set('cwaKey', m[1]); try { history.replaceState(null, '', location.pathname); } catch (e) { location.hash = ''; } return true; }
 takeKey(); window.addEventListener('hashchange', () => { if (takeKey()) rain(); });
 rain(); setInterval(rain, 300000);
