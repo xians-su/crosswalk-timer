@@ -160,7 +160,9 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 
 /* everything optional lives behind one faint line at the very bottom */
 #more{padding:0}
-#more>summary{justify-content:center;gap:6px;font-size:11.5px;min-height:30px;opacity:.65}
+#more>summary{justify-content:center;gap:5px;font-size:10.5px;letter-spacing:.08em;min-height:30px;opacity:.38}
+#more>summary::after{width:4px;height:4px;border-width:1.2px}
+#more[open]>summary{opacity:.6}
 #more[open]>summary{font-weight:400;color:var(--muted)}
 #more>section,#more>footer{margin-top:4px}
 /* low-key extras: settings, radar, camera — plain text rows, opened only when wanted */
@@ -230,7 +232,7 @@ footer span:nth-child(odd){opacity:.8}
   </section>
 
   <details id="more">
-  <summary>設定</summary>
+  <summary>Setting</summary>
   <section class="group">
   <details id="adv">
     <summary>一般</summary>
@@ -421,7 +423,7 @@ function render(){
     e.head.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (!p){
       e.card.className = 'x off' + (open ? ' open' : '');
-      e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到「設定」對時'; e.strip.hidden = true;
+      e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到 Setting 對時'; e.strip.hidden = true;
       e.leave.textContent = '--'; e.leave.className = 'leaveMsg'; e.nexts.textContent = ''; e.nexts.dataset.key = ''; e.lbl.hidden = false; e.live.hidden = true; e.sum1.textContent = '沒有時刻表'; e.sum2.textContent = '';
       continue;
     }
@@ -710,7 +712,7 @@ const memoSync = () => { $('memoClear').hidden = !memo.value; memoFit(); };
 memo.value = store.get('memo', ''); memoSync();
 memo.addEventListener('input', () => { store.set('memo', memo.value); memoSync(); });
 $('memoClear').addEventListener('click', () => { memo.value = ''; store.set('memo', ''); memoSync(); });
-/* Memo 預設關閉，在「設定」的「一般」裡打開；關掉時內容仍留著 */
+/* Memo 預設關閉，在 Setting 的「一般」裡打開；關掉時內容仍留著 */
 function memoShow(){ const on = store.get('memoOn', false) === true; $('memo').hidden = !on; $('memoOn').setAttribute('aria-checked', on ? 'true' : 'false'); if (on) memoSync(); }
 $('memoOn').addEventListener('click', () => { store.set('memoOn', !(store.get('memoOn', false) === true)); memoShow(); });
 memoShow();
