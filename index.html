@@ -88,10 +88,11 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .x.open[data-opts] .xname small{display:none}
 .opts button{min-height:28px;min-width:0;padding:0 8px;border:0;border-radius:7px;font-size:12px;color:var(--fg);opacity:.7;background:none}
 .opts button[aria-pressed="true"]{background:var(--panel);opacity:1;font-weight:700}
-/* one card open: the other crossings step back to plain rows so the open one holds the eye; their status text keeps its colour */
-#xs.focus .x:not(.open){background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
-#xs.focus .x.pin:not(.open){box-shadow:inset 0 0 0 1px var(--brand)}
-#xs.focus .x:not(.open) .xname{opacity:.75}
+/* one card open: the other crossings keep their red/green but paler, so the open one holds the eye (older browsers without color-mix keep the full tint) */
+#xs.focus .x:not(.open){background:color-mix(in srgb, var(--wait-bg) 42%, var(--bg))}
+#xs.focus .x.go:not(.open){background:color-mix(in srgb, var(--go-bg) 42%, var(--bg))}
+#xs.focus .x.pin:not(.open){background:var(--panel)}
+#xs.focus .x:not(.open) .xname{opacity:.8}
 /* just after a timetable change: the numbers are shown but visibly less certain */
 .x.shaky .secs,.x.shaky .xsum b{opacity:.45}
 /* a later crossing is chosen: white card with the company cyan, so it cannot be mistaken for the live red/green state */
