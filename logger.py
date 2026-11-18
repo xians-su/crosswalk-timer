@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Calibration logger for Taipei CCTV 415 (承德路1段-南京西路).
-Once a second: fetch the newest independent LL-HLS part, decode one frame,
-log per-ROI lamp colour pixel counts to data/YYYYMMDD.csv, keep a small crop.
-Temporary: run for a weekday + a weekend day, then stop."""
+"""Sampler for Taipei traffic camera 415 (承德路一段 × 南京西路, looking east along 南京西路).
+About once a second it fetches the newest video part, decodes one frame and counts lit green / red / yellow
+pixels in five small boxes (ROIS) that sit on signal lamps — see docs/camera-lamps.jpg:
+  A = 南京西路 lamp at 25 巷 (中山站 3・4 號出口)   B = 南京西路 lamp at 赤峰街 (the one check.py measures)
+  C, D, E = the near 南京西路 lamp cluster at 承德路
+Usage:  logger.py MINUTES OUT.csv   sample for MINUTES (what the scheduled check runs)
+        logger.py                   run until stopped, writing data/YYYYMMDD.csv plus small crops (manual calibration)
+CSV columns: unix time, HH:MM:SS, video segment, then green,red,yellow counts for A, B, C, D, E."""
 import cv2, time, re, os, sys, urllib.request, datetime, numpy as np
 B = 'https://jtmctrafficcctv3.gov.taipei/NVR/4309f60c-3f97-41ea-8598-84a0dd149f87'
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
