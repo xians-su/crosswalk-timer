@@ -33,11 +33,11 @@
   --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-html,body,button,summary,a,input{touch-action:manipulation}
+*{touch-action:manipulation}
 button{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 [hidden]{display:none!important}
 body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:15px;line-height:1.45;
-  padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
+  padding-top:calc(env(safe-area-inset-top,0px) + 18px);padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 p{margin:0;color:var(--muted);font-size:13px}
@@ -55,13 +55,14 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 .x{border-radius:20px;background:var(--wait-bg);color:var(--wait);transition:background .25s,color .25s;overflow:hidden}
 .x.go{background:var(--go-bg);color:var(--go)}
 .x.off{background:var(--off-bg);color:var(--muted);border:1px solid var(--line)}
-.xhead{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:56px;padding:8px 16px;border:0;border-radius:0;background:none;color:inherit;text-align:left}
-.xname{font-size:14px;font-weight:700;color:var(--fg);white-space:nowrap}
+.xhead{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 14px 8px 16px;border:0;border-radius:0;background:none;color:inherit;text-align:left}
+.xname{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--fg);white-space:nowrap}
 .xsum{display:flex;flex-direction:column;align-items:flex-end;line-height:1.3;white-space:nowrap;font-variant-numeric:tabular-nums}
 .xsum b{font-size:17px;font-weight:800}
 .xsum span{font-size:12.5px;color:var(--fg);opacity:.75}
-.x.open .xhead{justify-content:center;min-height:0;padding:12px 16px 0;pointer-events:none}
-.x.open .xname{font-size:12.5px;font-weight:500;letter-spacing:.04em;opacity:.7}
+.xhead::after{content:"";flex:none;width:9px;height:9px;margin:0 4px 4px 4px;border-right:2.5px solid var(--fg);border-bottom:2.5px solid var(--fg);opacity:.55;transform:rotate(45deg)}
+.x.open .xhead{min-height:44px;padding-top:10px;padding-bottom:0}
+.x.open .xhead::after{transform:rotate(-135deg);margin:4px 4px 0 4px}
 .x.open .xsum,.x:not(.open) .xbody{display:none}
 .xbody{padding:0 18px 16px;text-align:center}
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
@@ -100,6 +101,11 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 .cell b{display:block;font-family:var(--num);font-size:19px;font-weight:700;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums}
 #rainSub{font-size:13px;color:var(--muted);padding:0 2px}
 
+/* everything optional lives behind one faint line at the very bottom */
+#more{padding:0}
+#more>summary{justify-content:center;gap:6px;font-size:11.5px;min-height:30px;opacity:.65}
+#more[open]>summary{font-weight:400;color:var(--muted)}
+#more>section,#more>footer{margin-top:4px}
 /* low-key extras: settings, radar, camera — plain text rows, opened only when wanted */
 .group{padding:0 2px}
 details+details{border-top:1px solid var(--line)}
@@ -140,13 +146,15 @@ footer span:nth-child(odd){opacity:.8}
 
   <div id="rainSub" hidden></div>
 
+  <details id="more">
+  <summary>設定・天氣細節・雷達・影像</summary>
   <section class="group">
   <details id="adv">
     <summary>設定與校正</summary>
     <div>
       <div class="row"><span>過馬路本身要</span>
         <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
-      <p>以下套用在目前展開的路口：<b id="selName"></b></p>
+      <p>以下套用在：<b id="selName"></b>（展開哪個路口就調哪個）</p>
       <div class="row"><span>提早／延後</span>
         <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
       <button id="sync">行人綠燈剛亮（以這一刻重新對時）</button>
@@ -179,6 +187,7 @@ footer span:nth-child(odd){opacity:.8}
     <span>時刻</span><span id="srcNote"></span>
     <span>天氣</span><span>中央氣象署雷達與測站；無測站資料時用 Open-Meteo</span>
   </footer>
+  </details>
 </main>
 <script>
 /* ---- 時刻表：由官方時制表產生，每週自動核對更新；之後純靠手機時鐘計算 ----
@@ -235,7 +244,7 @@ const hms = t => new Date((t+8*3600)*1000).toISOString().substr(11,8);
 /* 每個路口一張卡片：展開的那張是大字版，其餘收成一行 */
 function build(){
   const box = $('xs'); box.textContent = '';
-  if (!DATA.crossings.find(x => x.id === sel)) sel = DATA.crossings.length ? DATA.crossings[0].id : null;
+  if (sel !== '' && !DATA.crossings.find(x => x.id === sel)) sel = DATA.crossings.length ? DATA.crossings[0].id : '';   // '' ＝ 全部收合
   for (const x of DATA.crossings){
     const s = document.createElement('section'); s.className = 'x off';
     s.innerHTML = '<button class="xhead"><span class="xname"></span><span class="xsum"><b></b><span></span></span></button>' +
@@ -246,7 +255,7 @@ function build(){
     x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
             go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts')};
     q('.xname').textContent = x.name;
-    x.el.head.addEventListener('click', () => { sel = x.id; store.set('sel', sel); labels(); render(); });
+    x.el.head.addEventListener('click', () => { sel = sel === x.id ? '' : x.id; store.set('sel', sel); labels(); render(); });
     const step = d => { store.set('walk_'+x.id, Math.max(0, Math.min(900, walkOf(x) + d))); labels(); render(); };
     q('.dn').addEventListener('click', () => step(-5)); q('.up').addEventListener('click', () => step(5));
     box.appendChild(s);
@@ -471,6 +480,12 @@ addEventListener('touchend', () => { const go = pullY !== null && pullD >= 80; p
 addEventListener('touchcancel', () => { pullY = null; $('ptr').hidden = true; });
 /* 從背景回到頁面時，順便抓一次最新時刻表 */
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSchedule(); });
+/* 有些 iPhone 版本在一般區域連點兩下仍會放大：第二下若落在非按鈕處就擋掉 */
+let lastTap = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now(), quick = now - lastTap < 350; lastTap = now;
+  if (quick && e.cancelable && !e.target.closest('button,summary,a,input,video')) e.preventDefault();
+}, {passive:false});
 setInterval(render, 250);
 </script>
 </body>
