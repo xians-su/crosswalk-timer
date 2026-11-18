@@ -1,9 +1,9 @@
 name: official-plan
-# Weekly: re-download the official timing plan PDF; if it changed, rebuild the timetable.
+# Daily: re-download the official timing plan PDF; if it changed, rebuild the timetable.
 on:
   workflow_dispatch:
   schedule:
-    - cron: '10 19 * * 0'   # Mon 03:10 Taipei
+    - cron: '10 19 * * *'   # every day 03:10 Taipei
 permissions:
   contents: write
 concurrency: repo-write

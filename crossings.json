@@ -23,7 +23,8 @@
    "len_extra": 2,
    "len_tol": 6,
    "strict": true,
-   "why": "the 南京西路 lamp at 赤峰街 turns red 2 s before people may cross and stays red through phases 1 and 3"
+   "why": "the 南京西路 lamp at 赤峰街 turns red 2 s before people may cross and stays red through phases 1 and 3",
+   "adjust": true
   }
  },
  {
@@ -51,7 +52,8 @@
    "len_extra": 12,
    "len_tol": 7,
    "strict": false,
-   "why": "the 南京西路 lamp at 25 巷 turns red at the start of the 7 s all-red that ends phase 1, i.e. 7 s before the pedestrian phase; measured at 10 frames a second the red lasts about 5 s longer than the three phases plus all-red, hence len_extra 12"
+   "why": "the 南京西路 lamp at 25 巷 turns red at the start of the 7 s all-red that ends phase 1, i.e. 7 s before the pedestrian phase; measured at 10 frames a second the red lasts about 5 s longer than the three phases plus all-red, hence len_extra 12; corrections are allowed here (adjust) because its timing reads as cleanly as the first crossing's, but a wrong lamp duration does not fail the job (not strict) until the duration rule has been seen on every plan",
+   "adjust": true
   }
  },
  {

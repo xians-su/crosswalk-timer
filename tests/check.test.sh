@@ -1,7 +1,7 @@
 #!/bin/bash
 # The camera check against a recorded 14-minute fine sample (Wed 2026-11-18 22:36, plan 08, 10 frames a second):  bash tests/check.test.sh
 # 1. the real timetable must be judged ok, within 1 second, for both crossings the camera can measure
-# 2. a timetable shifted by 30 s must be flagged with an error near -30: "adjusted" on the strict lamp, "drift" on the other
+# 2. a timetable shifted by 30 s must be flagged "adjusted" with an error near -30 on both lamps
 # 2b. a timetable shifted by only 1.5 s must also be caught (the whole point of fine sampling)
 # 3. a wrong expected lamp duration on the strict crossing must make the script exit 1
 set -e; cd "$(dirname "$0")/.."; T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
@@ -24,7 +24,7 @@ python3 - "$T" <<'PY'
 import json, sys
 T = sys.argv[1]; rows = [json.loads(l) for l in open(T + '/b.txt') if l.strip().startswith('{')]
 assert len(rows) == 2 and all(-31 <= r['err'] <= -29 for r in rows), rows
-assert {r['x']: r['status'] for r in rows} == {'chifeng': 'adjusted', 'zhongshan': 'drift'}, rows   # only the strict lamp may change the timetable
+assert {r['x']: r['status'] for r in rows} == {'chifeng': 'adjusted', 'zhongshan': 'adjusted'}, rows   # both lamps are allowed to correct the timetable
 print('ok   timetable shifted by 30 s is caught', [(r['x'], r['err']) for r in rows])
 s = json.load(open(T + '/schedule.json'))
 for x in s['crossings']:
@@ -54,3 +54,21 @@ print('ok   timetable shifted by only 1.5 s is caught', [(r['x'], r['err'], r['s
 PY
 cp "$T/keep.json" "$T/schedule.json"
 if python3 "$T/check.py" "$S" > /dev/null; then echo 'FAIL wrong lamp duration was not reported'; exit 1; else echo 'ok   wrong lamp duration on the strict crossing exits 1'; fi
+# 4. the self-correction loop end to end: start from a timetable that is wrong (first crossing 1.5 s late, second 2 s early),
+#    let the check apply its corrections, rebuild, and the same sample must then read ok on both
+cp build.py crossings.json plans.json index.html "$T/"
+echo '{"SLWH710": {"K": 0, "per_plan": {"08": 1.5}, "checked": {}}, "SLWH610": {"K": 0, "per_plan": {"08": -2.0}, "checked": {}}}' > "$T/calib.json"
+echo '[]' > "$T/checks.json"
+python3 "$T/build.py" > /dev/null
+python3 "$T/check.py" "$S" --apply > "$T/d.txt" || true
+python3 "$T/build.py" > /dev/null
+python3 "$T/check.py" "$S" > "$T/e.txt"
+python3 - "$T" <<'PY'
+import json, sys
+T = sys.argv[1]; rd = lambda f: [json.loads(l) for l in open(T + f) if l.strip().startswith('{')]
+before, after, C = rd('/d.txt'), rd('/e.txt'), json.load(open(T + '/calib.json'))
+assert {r['x']: r['status'] for r in before} == {'chifeng': 'adjusted', 'zhongshan': 'adjusted'}, before
+assert all(r['status'] == 'ok' and abs(r['err']) <= 0.3 for r in after), after
+assert abs(C['SLWH710']['per_plan']['08']) <= 0.3 and abs(C['SLWH610']['per_plan']['08']) <= 0.3, C
+print('ok   a wrong timetable corrects itself:', [(r['x'], r['err']) for r in before], '->', [(r['x'], r['err']) for r in after])
+PY

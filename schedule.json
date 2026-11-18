@@ -234,7 +234,8 @@
     "roi": "B",
     "color": "red",
     "len_tol": 6,
-    "strict": true
+    "strict": true,
+    "adjust": true
    }
   },
   {
@@ -471,7 +472,8 @@
     "roi": "A",
     "color": "red",
     "len_tol": 7,
-    "strict": false
+    "strict": false,
+    "adjust": true
    }
   },
   {

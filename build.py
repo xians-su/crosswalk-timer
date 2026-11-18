@@ -39,7 +39,7 @@ if __name__ == '__main__':
     def crossing(i, X):
         P, c = PL[X['code']], C.get(X['code'], {})
         out = {'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'], 'bands': bands(P, X, c)}
-        if X.get('lamp'): out['lamp'] = {k: X['lamp'][k] for k in ('roi', 'color', 'len_tol', 'strict', 'jitter') if k in X['lamp']}
+        if X.get('lamp'): out['lamp'] = {k: X['lamp'][k] for k in ('roi', 'color', 'len_tol', 'strict', 'adjust', 'jitter') if k in X['lamp']}
         if X.get('approx'): out['approx'] = True       # timing varies from cycle to cycle: the page says so
         if X.get('options'):      # several crossings at one junction: the page shows a switch
             out['opts'] = [{'dir': o['dir'], 'bands': bands(P, X, c, o['walk_phase'])} for o in X['options']]

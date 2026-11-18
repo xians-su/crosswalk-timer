@@ -3,11 +3,12 @@
 Usage: check.py SAMPLE.csv [--apply]
 For each crossing and each timing band covered by the sample:
   ok        the lamp changes when the timetable says (within 1.0 s for a fine sample, 3.0 s for a coarse one, after removing BIAS)
-  adjusted  a strict lamp is read clearly (4+ agreeing cycles) and is consistently early/late -> that crossing's per_plan K in calib.json
-            is updated (with --apply)
-  drift     early/late by more than TOL, but the evidence is not strong enough to change the timetable -> logged only
+  adjusted  a lamp marked `adjust` is read clearly in a fine sample (4+ agreeing cycles) and is consistently early/late ->
+            that crossing's per_plan K in calib.json is updated (with --apply); the page follows within minutes
+  drift     early/late by more than the tolerance, but not strong enough evidence to change the timetable -> logged, and exit 1
+            so that somebody is told
   unclear   too few clean cycles (glare, traffic, camera moved) -> logged only
-  mismatch  the lamp is read consistently but its duration disagrees with the plan -> logged; exit 1 if the crossing is marked strict
+  mismatch  the lamp is read consistently but its duration disagrees with the plan -> logged; exit 1 if the lamp is marked strict
 FAIL looks like: 'mismatch', 'adjusted' or 'drift' lines; a timetable shifted by 30 s must produce 'adjusted' (strict lamp) or 'drift' with err about -30."""
 import sys, json, os, datetime, numpy as np
 D = os.path.dirname(os.path.abspath(__file__))
@@ -63,8 +64,8 @@ def check(csv, sched):
                 r['err'] = round(float(np.median(core)) - M['bias'], 2 if M is FINE else 1); r['spread'] = round(float(np.ptp(core)), 2 if M is FINE else 1); r['agree'] = int(len(core)); r['fine'] = M is FINE
                 if len(core) < 3 or len(core) < 0.6 * len(eg): r['status'] = 'unclear'
                 elif abs(r['err']) <= M['tol']: r['status'] = 'ok'
-                # correcting the timetable is only allowed on solid evidence: a strict lamp, at least 4 agreeing cycles, tight spread
-                elif L.get('strict') and len(core) >= 4 and r['spread'] <= M['spread']: r['status'] = 'adjusted'
+                # correcting the timetable needs solid evidence: a lamp marked `adjust`, a fine sample, at least 4 agreeing cycles, tight spread
+                elif L.get('adjust') and M is FINE and len(core) >= 4 and r['spread'] <= M['spread']: r['status'] = 'adjusted'
                 else: r['status'] = 'drift'
             res.append(r)
     return res, t
@@ -88,4 +89,4 @@ if __name__ == '__main__':
         p = f'{D}/checks.json'; log = json.load(open(p)) if os.path.exists(p) else []
         log += [dict(when=when, **r) for r in res] or [dict(when=when, status='no-band')]
         json.dump(log[-300:], open(p, 'w'), ensure_ascii=False, indent=0)
-    sys.exit(1 if any(r['status'] == 'mismatch' and r['x'] in strict for r in res) else 0)
+    sys.exit(1 if any((r['status'] == 'mismatch' and r['x'] in strict) or r['status'] == 'drift' for r in res) else 0)
