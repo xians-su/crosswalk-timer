@@ -1,18 +1,19 @@
 name: camera-check
-# Samples the public traffic camera for 13 minutes inside each timing band, every day,
-# and compares the lamps with schedule.json. Times are UTC; Taipei = UTC+8.
+# Samples the public traffic camera for 13 minutes and compares the lamps with schedule.json.
+# Each run downloads about 90 MB of video from the city's camera server, so the schedule is kept modest:
+# three checks a day in working hours, plus one sweep of every timing band per week. Times are UTC; Taipei = UTC+8.
 on:
   workflow_dispatch:
-  schedule:                           # every day, once inside each timing band (Taipei time in the comments)
-    - cron: '25 16,17 * * 0-4'        # Mon-Fri 00:25 01:25
-    - cron: '55 21 * * 0-4'           # Mon-Fri 05:55
-    - cron: '25 23 * * 0-4'           # Mon-Fri 07:25
-    - cron: '55 1 * * 1-5'            # Mon-Fri 09:55
-    - cron: '25 5,9,12,15 * * 1-5'    # Mon-Fri 13:25 17:25 20:25 23:25
-    - cron: '25 16,17,21,23 * * 5,6'  # Sat-Sun 00:25 01:25 05:25 07:25
-    - cron: '25 1,4,13,15 * * 6,0'    # Sat-Sun 09:25 12:25 21:25 23:25
-    - cron: '0 1,7 * * *'             # every day 09:00 and 15:00: extra checks inside working hours
-    - cron: '40 3 * * *'              # every day 11:40: just before the lunch-hour peak
+  schedule:                           # Taipei time in the comments (UTC+8)
+    - cron: '0 1,7 * * *'             # every day 09:00 and 15:00  } the hours the page is actually used
+    - cron: '40 3 * * *'              # every day 11:40            } (just before the lunch-hour peak)
+    # once a week, one check inside every timing band: Wednesday for the weekday plans, Saturday for the weekend plans
+    - cron: '25 16,17,23 * * 2,5'     # Wed/Sat 00:25 01:25 07:25
+    - cron: '55 21 * * 2'             # Wed 05:55
+    - cron: '25 21 * * 5'             # Sat 05:25
+    - cron: '55 1 * * 3'              # Wed 09:55
+    - cron: '25 5,9,12,15 * * 3'      # Wed 13:25 17:25 20:25 23:25
+    - cron: '25 1,4,13,15 * * 6'      # Sat 09:25 12:25 21:25 23:25
 permissions:
   contents: write
 concurrency: repo-write
