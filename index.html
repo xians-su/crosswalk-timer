@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f3f5f4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0c1210" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121518" media="(prefers-color-scheme: dark)">
 <title>春樹小幸運</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="春樹小幸運">
@@ -19,18 +19,18 @@
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
   --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de;
-  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12);
+  --off-bg:#ffffff; --wet:#b3401f; --pill:rgba(255,255,255,.78); --pill-line:rgba(0,0,0,.12); --mark-gray:#595656;
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); color-scheme:dark } }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
   --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10;
-  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); color-scheme:dark }
+  --off-bg:#1c2026; --wet:#ff8a63; --pill:rgba(255,255,255,.1); --pill-line:rgba(255,255,255,.2); --mark-gray:#8a9098; color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 *{touch-action:manipulation}
@@ -44,11 +44,15 @@ p{margin:0;color:var(--muted);font-size:13px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
 .lbl{color:var(--muted);font-size:12px;letter-spacing:.04em}
 
-header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
+header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:8px;row-gap:1px;padding:0 2px}
+#mark{height:21px;width:auto;display:block}
+#mark .mgray{fill:var(--mark-gray)} #mark .mring{stroke:var(--bg)}
 #name{font-size:19px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
-#tag{color:var(--muted);font-size:12.5px;text-align:right;min-width:0}
-
-#ptr{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--fg);color:var(--bg);font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px}
+#tag{grid-column:1 / -1;color:var(--muted);font-size:12.5px}
+#theme{min-width:36px;min-height:36px;padding:0;border:0;border-radius:50%;color:var(--muted);display:grid;place-items:center}
+#theme svg{width:20px;height:20px;display:block}
+#theme svg>*{display:none}
+#theme[data-mode="auto"] .t-auto,#theme[data-mode="light"] .t-light,#theme[data-mode="dark"] .t-dark{display:inline}
 
 /* crossings: one card each. The open card answers go/wait, how long, and when to leave; the others show the same in one line */
 #xs{display:flex;flex-direction:column;gap:10px}
@@ -75,9 +79,10 @@ header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
 .word{font-size:26px;font-weight:800;letter-spacing:.1em;margin-top:2px}
 .secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:1;font-variant-numeric:tabular-nums}
 .sub{font-size:14px;color:var(--fg)}
-.strip{position:relative;height:12px;border-radius:6px;background:var(--wait);overflow:hidden;margin-top:12px;opacity:.9}
-.strip i{position:absolute;top:0;bottom:0;left:0;background:var(--go)}
-.strip u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--fg);border-radius:2px}
+.strip{position:relative;height:12px;border-radius:6px;background:var(--wait);margin-top:20px}
+.strip i{position:absolute;top:0;bottom:0;left:0;border-radius:6px 0 0 6px;background:var(--go)}
+.strip u{position:absolute;top:-8px;bottom:-5px;width:7px;margin-left:-3.5px;border-radius:3.5px;background:linear-gradient(#e6e400,#00afd5);transform:skewX(-10deg);box-shadow:0 0 0 2px var(--panel)}
+.strip u::after{content:"";position:absolute;left:50%;top:-11px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:#e6e400;box-shadow:0 0 0 1.5px var(--panel)}
 .leave{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 8px 8px 14px;border-radius:14px;background:var(--pill);color:var(--fg);text-align:left}
 .leaveMsg{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .leaveMsg.go{color:var(--go)}
@@ -137,11 +142,28 @@ footer{color:var(--muted);font-size:11.5px;line-height:1.6;padding:2px 2px 0;dis
 footer span:nth-child(odd){opacity:.8}
 @media (prefers-reduced-motion: reduce){summary::after,#now{transition:none}}
 </style>
+<script>try{var t=JSON.parse(localStorage.getItem('xw_theme'));if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 </head>
 <body>
 <div id="ptr" hidden>放開重新整理</div>
 <main>
-  <header><span id="name">春樹小幸運</span><span id="tag">Lucky you! 就是要比別人少等一些紅燈</span></header>
+  <header>
+    <svg id="mark" viewBox="60 236 904 580" aria-hidden="true">
+      <defs><clipPath id="mk"><rect x="92" y="552" width="840" height="176" rx="88"/></clipPath>
+        <linearGradient id="mg" gradientUnits="userSpaceOnUse" x1="0" y1="418" x2="0" y2="798"><stop offset="0" stop-color="#e6e400"/><stop offset="1" stop-color="#00afd5"/></linearGradient></defs>
+      <g clip-path="url(#mk)"><rect class="mgray" x="92" y="552" width="840" height="176"/><rect x="92" y="552" width="340" height="176" fill="#00afd5"/></g>
+      <line class="mring" x1="296" y1="766" x2="352" y2="450" stroke-width="92" stroke-linecap="round"/>
+      <line x1="296" y1="766" x2="352" y2="450" stroke="url(#mg)" stroke-width="64" stroke-linecap="round"/>
+      <g fill="#e6e400"><circle cx="407" cy="363" r="45"/><circle cx="337" cy="363" r="45"/><circle cx="337" cy="293" r="45"/><circle cx="407" cy="293" r="45"/></g>
+    </svg>
+    <span id="name">春樹小幸運</span>
+    <button id="theme" aria-label="外觀：跟隨系統">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><g class="t-auto"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.8a8.2 8.2 0 0 1 0 16.4z" fill="currentColor"/></g>
+        <g class="t-light" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M5.4 18.6l1.8-1.8M16.8 7.2l1.8-1.8"/></g>
+        <path class="t-dark" d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2z" fill="currentColor"/></svg>
+    </button>
+    <span id="tag">Lucky you! 就是要比別人少等一些紅燈</span>
+  </header>
 
   <div id="xs"></div>
 
@@ -321,6 +343,16 @@ bind('sync', () => {
   store.set('nudge_'+x.id, 0); store.set('manual_'+x.id, {anchor:t, at:t, cycle:b ? b.cycle : 200, red:b ? b.red : 40});
 });
 bind('clear', () => { const x = selX(); if (!x) return; store.set('manual_'+x.id, null); store.set('nudge_'+x.id, 0); });
+/* 外觀：預設跟著系統；點右上角圖示依序切換 跟隨系統 → 淺色 → 深色 */
+let theme = store.get('theme', 'auto'); if (!['auto','light','dark'].includes(theme)) theme = 'auto';
+const metas = [...document.querySelectorAll('meta[name="theme-color"]')], metaOrig = metas.map(m => m.content);
+function applyTheme(){
+  const r = document.documentElement; if (theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', theme);
+  $('theme').dataset.mode = theme; $('theme').setAttribute('aria-label', '外觀：' + {auto:'跟隨系統', light:'淺色', dark:'深色'}[theme]);
+  metas.forEach((m, i) => { m.content = theme === 'auto' ? metaOrig[i] : (theme === 'dark' ? '#121518' : '#f3f5f7'); });
+}
+$('theme').addEventListener('click', () => { theme = {auto:'light', light:'dark', dark:'auto'}[theme]; store.set('theme', theme); applyTheme(); });
+applyTheme();
 build(); loadSchedule();
 /* 放在桌上時讓螢幕保持亮著（系統不允許時就略過） */
 function keepAwake(){ if (navigator.wakeLock && document.visibilityState === 'visible') navigator.wakeLock.request('screen').catch(()=>{}); }
