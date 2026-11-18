@@ -37,13 +37,13 @@
    6
   ],
   "walk_phase": {
-   "60": 0,
-   "A9": 1,
-   "CF": 1
+   "60": 2,
+   "A9": 4,
+   "CF": 4
   },
   "min_clear": 6,
   "default_walk": 150,
-  "why": "crossing 南京西路 while 承德路 has green: phase 1 in the 4-phase night plans, phase 2 in the 6-phase plans (the camera shows 南京西路 green in phase 5). To cross 承德路 instead use {\"60\":2,\"A9\":4,\"CF\":4}",
-  "dir": "橫越南京西路"
+  "why": "crossing 承德路 while 南京西路 has green: phase 3 in the 4-phase night plans, phase 5 in the 6-phase plans (camera-checked: the 南京西路 lamp turns green at the start of phase 5)",
+  "dir": "橫越承德路"
  }
 ]
