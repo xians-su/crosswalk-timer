@@ -91,11 +91,18 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .walk .step{gap:2px}
 .walk button{min-width:40px;min-height:36px;padding:0;border-radius:9px;font-size:18px;border-color:var(--pill-line)}
 .walk output{min-width:3.4em;font-size:14px}
-.nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;white-space:nowrap}
-.nextRow .lbl{color:var(--fg);opacity:.7}
-.nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
-.nexts span{background:var(--pill);border-radius:999px;padding:3px 8px}
-@media (max-width:359px){.nexts span:nth-child(3){display:none}}
+.nextRow{display:flex;align-items:center;gap:8px;margin-top:10px;white-space:nowrap}
+.nextRow .lbl{flex:none;color:var(--fg);opacity:.7}
+.live{flex:none;min-height:30px;min-width:0;padding:0 10px;border:0;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12.5px;font-weight:700}
+.nexts{flex:1;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:1px}
+.nexts::-webkit-scrollbar{display:none}
+.nexts button{flex:none;min-height:30px;min-width:0;padding:0 8px;border:0;border-radius:999px;background:var(--pill);color:var(--fg);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.nexts button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+/* a later crossing is chosen: calm neutral card so it is clearly not the live state */
+.x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.x.pin .secs{color:var(--accent)}
+.x.pin .leave,.x.pin .nexts button[aria-pressed="false"]{background:var(--bg)}
+.x.pin .word{letter-spacing:.02em;font-size:22px}
 
 /* umbrella answer */
 #umb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;padding:10px 14px 11px}
@@ -242,6 +249,9 @@ const walkOf = x => store.get('walk_'+x.id, x.walk || 90), nudgeOf = x => store.
 const manualOf = (x, t) => { const m = store.get('manual_'+x.id, null); return m && t - m.at < MANUAL_TTL ? m : null; };
 const optOf = x => x.opts ? Math.min(store.get('opt_'+x.id, 0), x.opts.length - 1) : 0;
 const bandsOf = x => x.opts ? x.opts[optOf(x)].bands : x.bands, dirOf = x => x.opts ? x.opts[optOf(x)].dir : x.dir;
+const pinOf = (x, t) => { const v = store.get('pin_'+x.id, 0); return v > t ? v : 0; };       // 選定的那一班的開始時刻；到了就自動失效
+const dur = s => { s = Math.ceil(s); return s >= 60 ? Math.floor(s/60) + ':' + String(s%60).padStart(2, '0') : String(s); };
+const durText = s => { s = Math.ceil(s); return s >= 60 ? Math.floor(s/60) + ' 分 ' + (s%60) + ' 秒' : s + ' 秒'; };
 const selX = () => DATA.crossings.find(x => x.id === sel) || DATA.crossings[0];
 
 function bandFor(bands, t){
@@ -281,10 +291,13 @@ function build(){
     s.innerHTML = '<div class="xhead" role="button" tabindex="0"><span class="xname"></span><span class="opts" hidden></span><span class="sp"></span><span class="xsum"><b></b><span></span></span></div>' +
       '<div class="xbody"><div class="word"></div><div class="secs"></div><div class="sub"></div><div class="strip"><i></i><u></u></div>' +
       '<div class="leave"><b class="leaveMsg"></b><span class="walk"><span class="lbl">走到路口要</span><span class="step"><button class="dn" aria-label="減少 5 秒">−</button><output></output><button class="up" aria-label="增加 5 秒">＋</button></span></span></div>' +
-      '<div class="nextRow"><span class="lbl">之後可以過</span><span class="nexts"></span></div></div>';
+      '<div class="nextRow"><span class="lbl">之後可以過</span><button class="live" hidden>‹ 回到即時</button><span class="nexts"></span></div></div>';
     const q = c => s.querySelector(c);
     x.el = {card:s, head:q('.xhead'), sum1:q('.xsum b'), sum2:q('.xsum span'), word:q('.word'), secs:q('.secs'), sub:q('.sub'), strip:q('.strip'),
-            go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts')};
+            go:q('.strip i'), now:q('.strip u'), leave:q('.leaveMsg'), walk:q('.walk output'), nexts:q('.nexts'), lbl:q('.nextRow .lbl'), live:q('.live')};
+    /* 點某個之後的時刻＝改成對那一班倒數；再點一次或按「回到即時」就回來 */
+    x.el.nexts.addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; const v = +b.dataset.t; store.set('pin_'+x.id, Math.abs(pinOf(x, Date.now()/1000) - v) < 2 ? 0 : v); render(); });
+    x.el.live.addEventListener('click', () => { store.set('pin_'+x.id, 0); render(); });
     const nm = document.createElement('span'); nm.textContent = x.name; q('.xname').appendChild(nm); const dirEl = document.createElement('small'); q('.xname').appendChild(dirEl);
     const paint = () => { dirEl.textContent = dirOf(x) || ''; s.querySelectorAll('.opts button').forEach((b, i) => b.setAttribute('aria-pressed', i === optOf(x) ? 'true' : 'false')); };
     if (x.opts){                                   // 同一個路口有不同的橫越方向：展開後可切換，會記住
@@ -311,17 +324,32 @@ function render(){
     if (!p){
       e.card.className = 'x off' + (open ? ' open' : '');
       e.word.textContent = '沒有時刻表'; e.secs.textContent = '--'; e.sub.textContent = '到「設定與校正」對時'; e.strip.hidden = true;
-      e.leave.textContent = '--'; e.leave.className = 'leaveMsg'; e.nexts.textContent = ''; e.sum1.textContent = '沒有時刻表'; e.sum2.textContent = '';
+      e.leave.textContent = '--'; e.leave.className = 'leaveMsg'; e.nexts.textContent = ''; e.nexts.dataset.key = ''; e.lbl.hidden = false; e.live.hidden = true; e.sum1.textContent = '沒有時刻表'; e.sum2.textContent = '';
       continue;
     }
     const s = stateAt(p, t), w = leaveIn(p, t, walkOf(x)), secs = Math.ceil(s.left);
     const leave = w === null ? '可過時間太短' : (w < 1 ? '現在出發' : Math.ceil(w) + ' 秒後出發');
-    e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
-    e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
-    e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.go ? '秒後不能過' : '秒後可以過';
-    e.strip.hidden = false; e.go.style.width = (p.red/p.cycle*100)+'%'; e.now.style.left = (s.ph/p.cycle*100)+'%';
-    e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
-    e.nexts.innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
+    const pin = pinOf(x, t), walk = walkOf(x);
+    e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;      // 收合的那一行永遠是即時狀況
+    if (pin){                                        // 對選定的那一班倒數
+      const dep = pin - walk - t, ok = t + walk <= pin + p.red - cross;
+      e.card.className = 'x pin' + (open ? ' open' : '');
+      e.word.textContent = hms(pin) + ' 這一班'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過';
+      e.strip.hidden = true;
+      e.leave.textContent = dep >= 1 ? durText(dep) + '後出發' : (ok ? '現在出發' : '這一班來不及'); e.leave.className = 'leaveMsg' + (dep < 1 && ok ? ' go' : '');
+    } else {
+      e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
+      e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.go ? '秒後不能過' : '秒後可以過';
+      e.strip.hidden = false; e.go.style.width = (p.red/p.cycle*100)+'%'; e.now.style.left = (s.ph/p.cycle*100)+'%';
+      e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
+    }
+    e.lbl.hidden = !!pin; e.live.hidden = !pin;
+    const start0 = Math.round(t - s.ph), chips = [1,2,3,4,5,6].map(k => start0 + k*p.cycle);
+    const key = chips.join(',') + '|' + pin;          // 內容沒變就不重畫，點擊才不會落空
+    if (e.nexts.dataset.key !== key){
+      e.nexts.dataset.key = key;
+      e.nexts.innerHTML = chips.map(c => '<button data-t="'+c+'" aria-pressed="'+(Math.abs(c - pin) < 2)+'">'+hms(c)+'</button>').join('');
+    }
   }
   const x = selX(), m = x ? manualOf(x, t) : null;
   $('srcNote').textContent = m ? x.name+'依你 '+hms(m.at)+' 的對時推算' : DATA.note;
