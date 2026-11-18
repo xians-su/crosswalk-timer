@@ -30,7 +30,7 @@ if __name__ == '__main__':
     XS = json.load(open(f'{D}/crossings.json')); PL = json.load(open(f'{D}/plans.json')); C = json.load(open(f'{D}/calib.json'))
     first = PL[XS[0]['code']]
     note = f"交工處時制表 {first['data_time'][:10]} 版・{XS[0]['name']}已用攝影機核對 {len(C.get('checked', {}))}/{len(first['plans'])} 套時制"
-    sched = {'crossings': [{'id': X['id'], 'code': X['code'], 'name': X['name'], 'full': X['full'], 'walk': X['default_walk'],
+    sched = {'crossings': [{'id': X['id'], 'code': X['code'], 'name': X['name'], 'dir': X.get('dir', ''), 'full': X['full'], 'walk': X['default_walk'],
                             'bands': bands(PL[X['code']], X, C if i == 0 else {})} for i, X in enumerate(XS)],
              'note': note, 'plan_time': first['data_time']}
     json.dump(sched, open(f'{D}/schedule.json', 'w'), ensure_ascii=False, indent=1)

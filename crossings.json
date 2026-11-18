@@ -10,7 +10,8 @@
   "walk_phase": 2,
   "min_clear": 6,
   "default_walk": 90,
-  "why": "phase 3 = 赤峰街 green; people cross 南京西路. min_clear = yellow 3 + all-red 3"
+  "why": "phase 3 = 赤峰街 green; people cross 南京西路. min_clear = yellow 3 + all-red 3",
+  "dir": "橫越南京西路"
  },
  {
   "id": "zhongshan",
@@ -23,7 +24,8 @@
   "walk_phase": 1,
   "min_clear": 5,
   "default_walk": 120,
-  "why": "phase 2 = pedestrian-only phase, all directions"
+  "why": "phase 2 = pedestrian-only phase, all directions",
+  "dir": ""
  },
  {
   "id": "chengde",
@@ -41,6 +43,7 @@
   },
   "min_clear": 6,
   "default_walk": 150,
-  "why": "crossing 南京西路 while 承德路 has green: phase 1 in the 4-phase night plans, phase 2 in the 6-phase plans (the camera shows 南京西路 green in phase 5). To cross 承德路 instead use {\"60\":2,\"A9\":4,\"CF\":4}"
+  "why": "crossing 南京西路 while 承德路 has green: phase 1 in the 4-phase night plans, phase 2 in the 6-phase plans (the camera shows 南京西路 green in phase 5). To cross 承德路 instead use {\"60\":2,\"A9\":4,\"CF\":4}",
+  "dir": "橫越南京西路"
  }
 ]

@@ -4,6 +4,7 @@
    "id": "chifeng",
    "code": "SLWH710",
    "name": "赤峰街口",
+   "dir": "橫越南京西路",
    "full": "南京西路 × 赤峰街",
    "walk": 90,
    "bands": [
@@ -183,6 +184,7 @@
    "id": "zhongshan",
    "code": "SLWH610",
    "name": "中山站 3・4 號出口",
+   "dir": "",
    "full": "南京西路 × 25 巷",
    "walk": 120,
    "bands": [
@@ -345,6 +347,7 @@
    "id": "chengde",
    "code": "SLYGU10",
    "name": "承德路口",
+   "dir": "橫越南京西路",
    "full": "承德路一段 × 南京西路",
    "walk": 150,
    "bands": [
