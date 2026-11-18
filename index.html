@@ -189,7 +189,7 @@ const store = {
   set(k, v){ try{ localStorage.setItem('xw_'+k, JSON.stringify(v)); }catch(e){} }
 };
 /* 時刻表每週自動核對更新；抓不到就用頁面內建的版本 */
-const SITE = 'https://xians-su.github.io/crosswalk-timer/';
+const SITE = '';   // 時刻表與頁面放在同一個網址下
 function loadSchedule(){ fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
   if (s.bands && s.bands.length){ BANDS = s.bands; SRC = s.note; store.set('sched', s); }
 }).catch(() => { const c = store.get('sched', null); if (c && c.bands && c.bands.length){ BANDS = c.bands; SRC = c.note; } }); }
