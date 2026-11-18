@@ -20,7 +20,7 @@ def bands(P, X, C, walk_phase=None):
             to = sod(tab[i + 1][0]) if i + 1 < len(tab) else 86400
             # Taipei midnight in Unix seconds is a multiple of every cycle length in use (checked here)
             assert (8 * 3600) % pl['cycle'] == 0 and 86400 % pl['cycle'] == 0, f"cycle {pl['cycle']} breaks the midnight model"
-            b = {'days': days, 'from': sod(frm), 'to': to, 'cycle': pl['cycle'], 'plan': pid,
+            b = {'days': days, 'from': sod(frm), 'to': to, 'cycle': pl['cycle'], 'plan': pid, 'c0': round((pl['offset'] + K) % pl['cycle'], 1),   # c0: where each cycle starts
                  'anchor': round((pl['offset'] + K + sum(pl['p'][:w])) % pl['cycle'], 1), 'red': pl['p'][w] - clear - X.get('shorten', 0)}
             L = X.get('lamp')
             if L and walk_phase is None:             # what check.py expects the camera to see: when the lamp changes, and for how long
