@@ -24,7 +24,7 @@ def bands(P, C):
 if __name__ == '__main__':
     P = json.load(open(f'{D}/plans.json')); C = json.load(open(f'{D}/calib.json'))
     checked = sorted(C.get('checked', {}))
-    note = f"臺北市交工處時制表 {P['data_time'][:10]} 版；已用路口攝影機核對 {len(checked)}/{len(P['plans'])} 套時制"
+    note = f"交工處時制表 {P['data_time'][:10]} 版・攝影機已核對 {len(checked)}/{len(P['plans'])} 套時制"
     sched = {'bands': bands(P, C), 'note': note, 'plan_time': P['data_time']}
     json.dump(sched, open(f'{D}/schedule.json', 'w'), ensure_ascii=False, indent=1)
     h = open(f'{D}/index.html').read()

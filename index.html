@@ -8,139 +8,152 @@
 <title>春樹小幸運</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="春樹小幸運">
-<meta name="description" content="大大好人一生平安，過公司前馬路都不用等太久">
-<link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=3">
+<meta name="description" content="小幸運，就是你的超能力">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=4">
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-/* Layout: one screen, read from across a desk. State word + seconds on top, cycle strip, then when to leave. */
+/* Layout: everything needed for the decision on one phone screen — signal block, two answer tiles (when to leave, umbrella),
+   next crossings, weather figures. Settings, radar and camera sit below as one quiet list. Palette follows the company logo:
+   slate gray, cyan accent, sprout yellow marker; green/coral are reserved for the signal state. */
 :root{
-  --bg:#f3f5f4; --panel:#ffffff; --fg:#14201c; --muted:#5d6b66; --line:#d5dcd9;
-  --go:#0a7d55; --go-bg:#dff3ea; --wait:#b3401f; --wait-bg:#fbe6de; --ink-btn:#14201c; --ink-btn-fg:#ffffff;
+  --bg:#f3f5f7; --panel:#ffffff; --fg:#2b3038; --muted:#6e747b; --line:#e2e6ea; --accent:#0596b8;
+  --go-bg:#0b8f5a; --go-fg:#ffffff; --wait-bg:#2b3038; --wait-fg:#ffffff; --wait-num:#ff8a66; --strip-go:#3fd69b;
+  --off-bg:#ffffff; --wet:#d4380d; --mark:#ffd84d;
   --num:ui-rounded,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
   --text:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0c1210; --panel:#151d1a; --fg:#e9f0ed; --muted:#93a39d; --line:#2a3531;
-  --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10; --ink-btn:#e9f0ed; --ink-btn-fg:#0c1210; color-scheme:dark } }
+  --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
+  --go-bg:#0e9c63; --go-fg:#ffffff; --wait-bg:#1c2026; --wait-fg:#eef1f4; --wait-num:#ff8a66; --strip-go:#3fd69b;
+  --off-bg:#1c2026; --wet:#ff8a66; --mark:#ffd84d; color-scheme:dark } }
 :root[data-theme="dark"]{
-  --bg:#0c1210; --panel:#151d1a; --fg:#e9f0ed; --muted:#93a39d; --line:#2a3531;
-  --go:#3fd69b; --go-bg:#0f2e22; --wait:#ff8a63; --wait-bg:#361a10; --ink-btn:#e9f0ed; --ink-btn-fg:#0c1210; color-scheme:dark }
+  --bg:#121518; --panel:#1c2026; --fg:#eef1f4; --muted:#9aa1a9; --line:#2d333b; --accent:#3ccbee;
+  --go-bg:#0e9c63; --go-fg:#ffffff; --wait-bg:#1c2026; --wait-fg:#eef1f4; --wait-num:#ff8a66; --strip-go:#3fd69b;
+  --off-bg:#1c2026; --wet:#ff8a66; --mark:#ffd84d; color-scheme:dark }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body,button,summary,a,input{touch-action:manipulation}
 button{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 [hidden]{display:none!important}
-body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:16px;line-height:1.5;
-  padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:var(--muted);font-size:14px}
-header b{color:var(--fg);font-weight:700;font-size:20px}
-#clock{font-variant-numeric:tabular-nums}
-#now{border-radius:20px;padding:20px 20px 16px;text-align:center;background:var(--wait-bg);color:var(--wait);transition:background .3s,color .3s}
-#now.go{background:var(--go-bg);color:var(--go)}
-#now.off{background:var(--panel);color:var(--muted)}
-#word{font-size:30px;font-weight:700;letter-spacing:.08em}
-#secs{font-family:var(--num);font-size:clamp(96px,34vw,150px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-#sub{font-size:15px;color:var(--fg)}
-#strip{position:relative;height:14px;border-radius:7px;background:var(--wait);overflow:hidden;margin-top:14px;opacity:.9}
-#strip i{position:absolute;top:0;bottom:0;left:0;background:var(--go)}
-#strip u{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--fg);border-radius:2px}
-#leave{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
-#leaveMsg{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
-#leaveMsg.go{color:var(--go)}
-#rain{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
-#rainMsg{font-size:22px;font-weight:700}
-#rainMsg.wet{color:var(--wait)}
-#rainSub,#wxNow{color:var(--muted);font-size:14px}
-#rainWarn{color:var(--wait);font-weight:700;font-size:15px}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--fg);font-family:var(--text);font-size:15px;line-height:1.45;
+  padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+p{margin:0;color:var(--muted);font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+.lbl{color:var(--muted);font-size:12px;letter-spacing:.04em}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
+#name{font-size:19px;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+#tag{color:var(--muted);font-size:12.5px;text-align:right;min-width:0}
+
+#ptr{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--fg);color:var(--bg);font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px}
+
+/* signal block */
+#now{border-radius:20px;padding:14px 18px 16px;text-align:center;background:var(--wait-bg);color:var(--wait-fg);transition:background .25s}
+#now.go{background:var(--go-bg);color:var(--go-fg)}
+#now.off{background:var(--off-bg);color:var(--muted);border:1px solid var(--line)}
+#where{font-size:12.5px;letter-spacing:.04em;opacity:.8}
+#word{font-size:22px;font-weight:800;letter-spacing:.14em;margin-top:2px}
+#secs{font-family:var(--num);font-weight:800;font-size:clamp(84px,27vw,108px);line-height:.98;font-variant-numeric:tabular-nums;color:var(--wait-num)}
+#now.go #secs{color:var(--go-fg)}
+#now.off #secs{color:var(--muted)}
+#sub{font-size:14px;opacity:.9}
+#strip{position:relative;height:8px;border-radius:4px;margin-top:12px;background:rgba(255,255,255,.2)}
+#strip i{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--strip-go)}
+#now.go #strip i{background:rgba(255,255,255,.95)}
+#strip u{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;border-radius:2px;background:var(--mark);box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
+
+/* answer tiles */
+#tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{padding:10px 14px 11px;min-width:0}
+.tile b{display:block;font-size:19px;font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#leaveMsg.go{color:var(--go-bg)}
+#rainMsg.wet,#rainNote.wet{color:var(--wet)}
+
+/* next crossings */
+#nextRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px;white-space:nowrap}
+#nexts{display:flex;gap:5px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+#nexts span{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 8px}
+@media (max-width:359px){#nexts span:nth-child(3){display:none}}
+
+/* weather figures: one card, hairline grid */
+#wxCells{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}
+#wxCells:empty{display:none}
+.cell{padding:9px 12px 10px;min-width:0;border-top:1px solid var(--line);border-left:1px solid var(--line);margin:-1px 0 0 -1px}
+.cell small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell b{display:block;font-family:var(--num);font-size:19px;font-weight:700;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums}
+#rainSub{font-size:13px;color:var(--muted);padding:0 2px}
+
+/* quiet list: settings, radar, camera */
+.group{overflow:hidden}
+details{padding:0 14px}
+details+details{border-top:1px solid var(--line)}
+summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;min-height:46px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";flex:none;width:7px;height:7px;margin-right:4px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(-135deg)}
+details>div{display:flex;flex-direction:column;gap:10px;padding-bottom:14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted)}
+.step{display:flex;align-items:center;gap:6px}
+.step output{min-width:4.2em;text-align:center;color:var(--fg);font-weight:700;font-variant-numeric:tabular-nums}
+button{font:inherit;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;cursor:pointer}
+button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
 #radar{display:block;position:relative;overflow:hidden;aspect-ratio:4/3;border-radius:12px;background:var(--bg)}
-#cam{display:block;width:100%;aspect-ratio:3/2;border-radius:12px;background:#000000}
 #radar img{position:absolute;width:450%;max-width:none;left:-191.75%;top:-239%}
 #radar i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px;border-radius:50%;border:2px solid #14201c;background:#ffffff}
-#nexts{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:15px}
-.step{display:flex;align-items:center;gap:6px}
-.step output{min-width:4.2em;text-align:center;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
-button{font:inherit;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;cursor:pointer}
-button:focus-visible,summary:focus-visible{outline:2px solid var(--go);outline-offset:2px}
-button.main{background:var(--ink-btn);color:var(--ink-btn-fg);border-color:var(--ink-btn);font-weight:700;width:100%;min-height:52px;font-size:17px}
-details{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
-summary{cursor:pointer;font-weight:600;min-height:28px}
-#leave details{background:none;border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0 0}
-details>div{display:flex;flex-direction:column;gap:12px;margin-top:12px}
-p{margin:0;color:var(--muted);font-size:14px}
-#src{font-size:13px;color:var(--muted);text-align:center}
-/* --- layout pass: one glance block on top, quiet lists below --- */
-#word{font-size:26px}
-#where{font-size:14px;font-weight:600;color:var(--fg);opacity:.75;margin-bottom:4px}
-#leaveMsg{margin-top:16px;padding:12px;border-radius:14px;background:var(--panel);color:var(--fg);font-size:22px}
-#leave{gap:12px}
-#nexts{display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap;font-size:13px}
-#nexts span{border:1px solid var(--line);border-radius:999px;padding:3px 7px}
-.row.one{flex-wrap:nowrap}
-@media (max-width:359px){#nexts span:nth-child(3){display:none}}
-.row.one>span:first-child{white-space:nowrap}
-#rain{display:flex;flex-direction:column;gap:6px}
-#wxCells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
-#wxCells:empty{display:none}
-.cell{background:var(--bg);border-radius:12px;padding:10px;min-width:0}
-.cell small{display:block;color:var(--muted);font-size:12px;line-height:1.4}
-.cell b{display:block;font-family:var(--num);font-size:20px;white-space:nowrap;line-height:1.25;font-variant-numeric:tabular-nums}
-.group{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.group details{background:none;border:0;border-radius:0}
-.group details+details{border-top:1px solid var(--line)}
-summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"";flex:none;width:8px;height:8px;margin-right:4px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
-details[open]>summary::after{transform:rotate(-135deg)}
+#cam{display:block;width:100%;aspect-ratio:3/2;border-radius:12px;background:#000000}
+
+footer{color:var(--muted);font-size:11.5px;line-height:1.6;padding:2px 2px 0;display:grid;grid-template-columns:auto 1fr;column-gap:10px}
+footer span:nth-child(odd){opacity:.8}
 @media (prefers-reduced-motion: reduce){summary::after,#now{transition:none}}
 </style>
 </head>
 <body>
+<div id="ptr" hidden>放開重新整理</div>
 <main>
-  <header><span><b id="name">春樹小幸運</b><br>大大好人一生平安，過公司前馬路都不用等太久</span></header>
+  <header><span id="name">春樹小幸運</span><span id="tag">小幸運，就是你的超能力</span></header>
 
   <section id="now" class="off" aria-live="off">
-    <div id="where">南京西路 × 赤峰街口　橫越南京西路</div>
+    <div id="where">南京西路 × 赤峰街口・橫越南京西路</div>
     <div id="word">尚未對時</div>
     <div id="secs">--</div>
-    <div id="sub">這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時</div>
+    <div id="sub">這個時段沒有時刻表，到「設定與校正」對時</div>
     <div id="strip" hidden><i id="stripGo"></i><u id="stripNow"></u></div>
-    <div id="leaveMsg">--</div>
   </section>
 
-  <section id="leave">
-    <div class="row"><span>走到路口要</span>
-      <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
-    <div class="row one"><span>之後可以過</span><span id="nexts"></span></div>
-    <details id="adv">
-      <summary>校正</summary>
-      <div>
-        <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
-        <div class="row"><span>提早／延後</span>
-          <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
-        <div class="row"><span>一輪長度</span>
-          <span class="step"><button id="cycDn" aria-label="減少 1 秒">−</button><output id="cycOut">200 秒</output><button id="cycUp" aria-label="增加 1 秒">＋</button></span></div>
-        <div class="row"><span>可過的時間</span>
-          <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
-        <div class="row"><span>過馬路本身要</span>
-          <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
-        <button id="clear">清除我的對時，改用實測時刻表</button>
-          <p>車道紅燈＝你可以過。平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
-      </div>
-    </details>
+  <section id="tiles">
+    <div class="tile card"><span class="lbl">何時出發</span><b id="leaveMsg">--</b><small id="walkNote"></small></div>
+    <div class="tile card"><span class="lbl">要不要帶傘</span><b id="rainMsg">查詢中</b><small id="rainNote"></small></div>
   </section>
 
-  <section id="rain">
-    <div id="rainWarn" hidden></div>
-    <div id="rainMsg">查詢天氣中</div>
-    <div id="wxCells"></div>
-    <div id="rainSub" hidden></div>
-  </section>
+  <div id="nextRow"><span class="lbl">之後可以過</span><span id="nexts"></span></div>
 
-  <section class="group">
+  <section id="wxCells" class="card"></section>
+  <div id="rainSub" hidden></div>
 
+  <section class="group card">
+  <details id="adv">
+    <summary>設定與校正</summary>
+    <div>
+      <div class="row"><span>走到路口要</span>
+        <span class="step"><button id="walkDn" aria-label="減少 5 秒">−</button><output id="walkOut">90 秒</output><button id="walkUp" aria-label="增加 5 秒">＋</button></span></div>
+      <div class="row"><span>過馬路本身要</span>
+        <span class="step"><button id="crossDn" aria-label="減少 5 秒">−</button><output id="crossOut">25 秒</output><button id="crossUp" aria-label="增加 5 秒">＋</button></span></div>
+      <div class="row"><span>提早／延後</span>
+        <span class="step"><button id="nudgeDn" aria-label="提早 1 秒">−1</button><output id="nudgeOut">0 秒</output><button id="nudgeUp" aria-label="延後 1 秒">+1</button></span></div>
+      <button id="sync">車道剛轉紅（以這一刻重新對時）</button>
+      <div class="row"><span>對時用：一輪長度</span>
+        <span class="step"><button id="cycDn" aria-label="減少 1 秒">−</button><output id="cycOut">200 秒</output><button id="cycUp" aria-label="增加 1 秒">＋</button></span></div>
+      <div class="row"><span>對時用：可過的時間</span>
+        <span class="step"><button id="redDn" aria-label="減少 1 秒">−</button><output id="redOut">95 秒</output><button id="redUp" aria-label="增加 1 秒">＋</button></span></div>
+      <button id="clear">清除我的對時，改回時刻表</button>
+      <p>平常不用校正。若某個時段不準，在路口看到南京西路車道轉紅的那一刻按「車道剛轉紅」，之後 3 小時以那一刻為準。</p>
+    </div>
+  </details>
   <details id="radarBox">
     <summary>雷達回波圖</summary>
     <div>
@@ -148,7 +161,6 @@ details[open]>summary::after{transform:rotate(-135deg)}
       <p>樹林雷達。白點是路口，畫面寬約 80 公里，顏色越暖雨越大。</p>
     </div>
   </details>
-
   <details id="camBox">
     <summary>路口即時影像</summary>
     <div>
@@ -158,14 +170,18 @@ details[open]>summary::after{transform:rotate(-135deg)}
   </details>
   </section>
 
-  <div id="src"></div>
+  <footer>
+    <span>號誌</span><span>臺北市南京西路 × 赤峰街口（交工處編號 SLWH710）</span>
+    <span>時刻</span><span id="srcNote"></span>
+    <span>天氣</span><span>中央氣象署雷達與測站；無測站資料時用 Open-Meteo</span>
+  </footer>
 </main>
 <script>
 /* ---- 實測時刻表（由 VPS 校準後填入；之後純靠手機時鐘計算，不需連線）----
    days: 'wd' 週一至五, 'we' 週六日；from/to: 當天秒數；cycle: 一輪秒數；
    anchor: 某一次「車道轉紅」的 Unix 秒；red: 車道紅燈（可過）秒數 */
 let BANDS = /*BANDS*/[{"days": "wd", "from": 0, "to": 3600, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "wd", "from": 3600, "to": 19800, "cycle": 90, "anchor": 50, "red": 34, "plan": "06", "lampRed": 47}, {"days": "wd", "from": 19800, "to": 25200, "cycle": 120, "anchor": 80, "red": 34, "plan": "01", "lampRed": 47}, {"days": "wd", "from": 25200, "to": 34200, "cycle": 200, "anchor": 76, "red": 58, "plan": "09", "lampRed": 71}, {"days": "wd", "from": 34200, "to": 46800, "cycle": 200, "anchor": 118, "red": 56, "plan": "04", "lampRed": 69}, {"days": "wd", "from": 46800, "to": 61200, "cycle": 200, "anchor": 113, "red": 61, "plan": "02", "lampRed": 74}, {"days": "wd", "from": 61200, "to": 72000, "cycle": 200, "anchor": 75, "red": 64, "plan": "11", "lampRed": 82}, {"days": "wd", "from": 72000, "to": 82800, "cycle": 180, "anchor": 121, "red": 44, "plan": "08", "lampRed": 57}, {"days": "wd", "from": 82800, "to": 86400, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "we", "from": 0, "to": 3600, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}, {"days": "we", "from": 3600, "to": 18000, "cycle": 90, "anchor": 50, "red": 34, "plan": "06", "lampRed": 47}, {"days": "we", "from": 18000, "to": 25200, "cycle": 120, "anchor": 80, "red": 34, "plan": "01", "lampRed": 47}, {"days": "we", "from": 25200, "to": 32400, "cycle": 150, "anchor": 90, "red": 44, "plan": "03", "lampRed": 57}, {"days": "we", "from": 32400, "to": 43200, "cycle": 150, "anchor": 90, "red": 44, "plan": "12", "lampRed": 57}, {"days": "we", "from": 43200, "to": 75600, "cycle": 150, "anchor": 55, "red": 64, "plan": "07", "lampRed": 82}, {"days": "we", "from": 75600, "to": 82800, "cycle": 150, "anchor": 90, "red": 44, "plan": "13", "lampRed": 57}, {"days": "we", "from": 82800, "to": 86400, "cycle": 120, "anchor": 80, "red": 34, "plan": "05", "lampRed": 47}]/*END*/;
-let SRC = /*SRC*/"臺北市交工處時制表 2026-11-12 版；已用路口攝影機核對 1/12 套時制"/*END*/;
+let SRC = /*SRC*/"交工處時制表 2026-11-12 版・攝影機已核對 1/12 套時制"/*END*/;
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -174,9 +190,10 @@ const store = {
 };
 /* 時刻表每週自動核對更新；抓不到就用頁面內建的版本 */
 const SITE = 'https://xians-su.github.io/crosswalk-timer/';
-fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
+function loadSchedule(){ fetch(SITE + 'schedule.json', {cache:'no-store'}).then(r => r.json()).then(s => {
   if (s.bands && s.bands.length){ BANDS = s.bands; SRC = s.note; store.set('sched', s); }
-}).catch(() => { const c = store.get('sched', null); if (c && c.bands && c.bands.length){ BANDS = c.bands; SRC = c.note; } });
+}).catch(() => { const c = store.get('sched', null); if (c && c.bands && c.bands.length){ BANDS = c.bands; SRC = c.note; } }); }
+loadSchedule();
 let walk = store.get('walk', 90), cross = store.get('cross', 25), nudge = store.get('nudge', 0);
 let manual = store.get('manual', null);            // {anchor, cycle, red, at}
 let mCycle = store.get('cycle', 200), mRed = store.get('red', 95);
@@ -216,7 +233,7 @@ function render(){
   $('strip').hidden = !p;
   if (!p){
     now.className = 'off'; $('word').textContent = '尚未對時'; $('secs').textContent = '--';
-    $('sub').textContent = '這個時段沒有時刻表。到「校正」按「車道剛轉紅」對時'; $('nexts').textContent = '--';
+    $('sub').textContent = '這個時段沒有時刻表，到「設定與校正」對時'; $('nexts').textContent = '';
     $('leaveMsg').textContent = '--'; $('leaveMsg').className = '';
   } else {
     const s = stateAt(p, t);
@@ -228,14 +245,14 @@ function render(){
     $('stripNow').style.left = (s.ph/p.cycle*100)+'%';
     $('nexts').innerHTML = [1,2,3].map(k => '<span>'+hms(t - s.ph + k*p.cycle)+'</span>').join('');
     const w = leaveIn(p, t), lm = $('leaveMsg');
-    if (w===null){ lm.textContent = '可過時間太短，調整下方秒數'; lm.className=''; }
+    if (w===null){ lm.textContent = '時間不夠過'; lm.className=''; }
     else if (w < 1){ lm.textContent = '現在出發'; lm.className='go'; }
     else { lm.textContent = Math.ceil(w)+' 秒後出發'; lm.className=''; }
   }
-  $('src').textContent = '號誌：臺北市大同區南京西路與赤峰街口（交工處路口編號 SLWH710）。' + (p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC);
+  $('srcNote').textContent = p && p.manual ? '依你 '+hms(manual.at)+' 的對時推算' : SRC;
 }
 function labels(){
-  $('walkOut').textContent = walk+' 秒'; $('crossOut').textContent = cross+' 秒';
+  $('walkOut').textContent = walk+' 秒'; $('walkNote').textContent = '走到路口 '+walk+' 秒'; $('crossOut').textContent = cross+' 秒';
   $('nudgeOut').textContent = (nudge>0?'+':'')+nudge+' 秒';
   $('cycOut').textContent = mCycle+' 秒'; $('redOut').textContent = mRed+' 秒';
 }
@@ -362,13 +379,20 @@ function cwaView(g, warn, obs, fc, t){
   return v;
 }
 function showRain(v){
-  $('rainWarn').hidden = !v.warn; $('rainWarn').textContent = v.warn ? '臺北市 '+v.warn : '';
-  $('rainMsg').textContent = v.msg; $('rainMsg').className = v.wet ? 'wet' : '';
+  /* 方格大字＝要做什麼，小字＝原因 */
+  const parts = v.msg.split('，'); let head, note;
+  if (parts.length > 1){ note = parts[0]; head = parts[1] === '帶傘' ? '要帶傘' : parts[1]; }
+  else if (v.msg === '一小時內不會下雨'){ head = '不用帶傘'; note = v.msg; }
+  else if (v.msg === '不用帶傘'){ head = v.msg; note = '降雨機率低'; }
+  else { head = v.msg; note = ''; }
+  if (v.warn){ note = '臺北市 '+v.warn; if (head === '不用帶傘') head = '建議帶傘'; }
+  $('rainMsg').textContent = head; $('rainMsg').className = v.wet ? 'wet' : '';
+  $('rainNote').textContent = note; $('rainNote').className = v.warn ? 'wet' : '';
   $('rainSub').hidden = !v.sub; $('rainSub').textContent = v.sub || '';
   const box = $('wxCells'); box.textContent = '';
   for (const c of v.cells || []){
     const d = document.createElement('div'); d.className = 'cell';
-    for (const [tag, txt] of [['small', c.k], ['b', c.v], ['small', c.n]]){ if (!txt) continue; const e = document.createElement(tag); e.textContent = txt; d.appendChild(e); }
+    for (const [tag, txt] of [['small', c.k], ['b', c.v], ['small', c.n || '\u00a0']]){ const e = document.createElement(tag); e.textContent = txt; d.appendChild(e); }
     box.appendChild(d);
   }
 }
@@ -413,6 +437,14 @@ function takeKey(){ const m = location.hash.match(/^#cwa=(CWA-[A-Za-z0-9-]+)$/);
 takeKey(); window.addEventListener('hashchange', () => { if (takeKey()) rain(); });
 rain(); setInterval(rain, 300000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rain(); });
+/* 加到主畫面後 iPhone 沒有內建的下拉重整，這裡自己做：在頁面最上方往下拉超過 80 點再放開 */
+let pullY = null, pullD = 0;
+addEventListener('touchstart', e => { pullD = 0; pullY = (window.scrollY <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null; }, {passive:true});
+addEventListener('touchmove', e => { if (pullY === null) return; pullD = e.touches[0].clientY - pullY; $('ptr').hidden = pullD < 80; }, {passive:true});
+addEventListener('touchend', () => { const go = pullY !== null && pullD >= 80; pullY = null; $('ptr').hidden = true; if (go) location.reload(); });
+addEventListener('touchcancel', () => { pullY = null; $('ptr').hidden = true; });
+/* 從背景回到頁面時，順便抓一次最新時刻表 */
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSchedule(); });
 labels(); render(); setInterval(render, 250);
 </script>
 </body>
