@@ -1,0 +1,15 @@
+[
+{
+"when": "2026-11-18 17:37",
+"days": "wd",
+"plan": "11",
+"from": 61200,
+"cycles": 4,
+"clean": 4,
+"red_len": 80.7,
+"red_len_plan": 82,
+"err": -0.9,
+"spread": 2.9,
+"status": "ok"
+}
+]
