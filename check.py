@@ -3,10 +3,12 @@
 Usage: check.py SAMPLE.csv [--apply]
 For each crossing and each timing band covered by the sample:
   ok        the lamp changes when the timetable says (within TOL seconds after removing BIAS)
-  adjusted  the lamp is read clearly and is consistently early/late -> that crossing's per_plan K in calib.json is updated (with --apply)
+  adjusted  a strict lamp is read clearly (4+ agreeing cycles) and is consistently early/late -> that crossing's per_plan K in calib.json
+            is updated (with --apply)
+  drift     early/late by more than TOL, but the evidence is not strong enough to change the timetable -> logged only
   unclear   too few clean cycles (glare, traffic, camera moved) -> logged only
   mismatch  the lamp is read consistently but its duration disagrees with the plan -> logged; exit 1 if the crossing is marked strict
-FAIL looks like: 'mismatch' or 'adjusted' lines; a timetable shifted by 30 s must produce 'adjusted' with err about -30."""
+FAIL looks like: 'mismatch', 'adjusted' or 'drift' lines; a timetable shifted by 30 s must produce 'adjusted' (strict lamp) or 'drift' with err about -30."""
 import sys, json, os, datetime, numpy as np
 D = os.path.dirname(os.path.abspath(__file__))
 BIAS, TOL = 3.5, 3.0   # BIAS: stream delay + detection lag of this method, measured 2026-11-18
@@ -51,7 +53,10 @@ def check(csv, sched):
                 eg = e[good]; core = eg[np.abs(eg - np.median(eg)) <= L.get('jitter', 2.5)]   # ignore stray early/late detections
                 r['err'] = round(float(np.median(core)) - BIAS, 1); r['spread'] = round(float(np.ptp(core)), 1); r['agree'] = int(len(core))
                 if len(core) < 3 or len(core) < 0.6 * len(eg): r['status'] = 'unclear'
-                else: r['status'] = 'ok' if abs(r['err']) <= TOL else 'adjusted'
+                elif abs(r['err']) <= TOL: r['status'] = 'ok'
+                # correcting the timetable is only allowed on solid evidence: a strict lamp, at least 4 agreeing cycles, tight spread
+                elif L.get('strict') and len(core) >= 4 and r['spread'] <= 2.5: r['status'] = 'adjusted'
+                else: r['status'] = 'drift'
             res.append(r)
     return res, t
 

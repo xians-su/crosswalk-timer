@@ -1,7 +1,7 @@
 #!/bin/bash
 # The camera check against a recorded 16-minute sample (Wed 2026-11-18 18:00, plan 11):  bash tests/check.test.sh
 # 1. the real timetable must be judged ok for all three crossings
-# 2. a timetable shifted by 30 s must be flagged "adjusted" with an error near -30 (proves the check can fail)
+# 2. a timetable shifted by 30 s must be flagged with an error near -30: "adjusted" on the strict lamp, "drift" on the others
 # 3. a wrong expected lamp duration on the strict crossing must make the script exit 1
 set -e; cd "$(dirname "$0")/.."; T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 cp check.py schedule.json calib.json "$T/"; S=tests/sample-wd-1800.csv
@@ -21,7 +21,8 @@ python3 "$T/check.py" "$S" > "$T/b.txt"
 python3 - "$T" <<'PY'
 import json, sys
 T = sys.argv[1]; rows = [json.loads(l) for l in open(T + '/b.txt') if l.strip().startswith('{')]
-assert len(rows) == 3 and all(r['status'] == 'adjusted' and -34 <= r['err'] <= -27 for r in rows), rows
+assert len(rows) == 3 and all(-34 <= r['err'] <= -27 for r in rows), rows
+assert {r['x']: r['status'] for r in rows} == {'chifeng': 'adjusted', 'zhongshan': 'drift', 'chengde': 'drift'}, rows   # only the strict lamp may change the timetable
 print('ok   timetable shifted by 30 s is caught', [(r['x'], r['err']) for r in rows])
 s = json.load(open(T + '/schedule.json'))
 for x in s['crossings']:
