@@ -88,6 +88,10 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .x.open[data-opts] .xname small{display:none}
 .opts button{min-height:28px;min-width:0;padding:0 8px;border:0;border-radius:7px;font-size:12px;color:var(--fg);opacity:.7;background:none}
 .opts button[aria-pressed="true"]{background:var(--panel);opacity:1;font-weight:700}
+/* one card open: the other crossings step back to plain rows so the open one holds the eye; their status text keeps its colour */
+#xs.focus .x:not(.open){background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+#xs.focus .x.pin:not(.open){box-shadow:inset 0 0 0 1px var(--brand)}
+#xs.focus .x:not(.open) .xname{opacity:.75}
 /* a later crossing is chosen: white card with the company cyan, so it cannot be mistaken for the live red/green state */
 .x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 2px var(--brand)}
 .x.pin .secs,.x.pin .xsum b{color:var(--brand)}
@@ -462,6 +466,7 @@ function render(){
       e.nexts.innerHTML = chips.map(c => '<button data-t="'+c+'" aria-pressed="'+(Math.abs(c - pin) < 2)+'">'+hms(c)+'</button>').join('');
     }
   }
+  $('xs').classList.toggle('focus', DATA.crossings.some(c => c.id === sel));
   const x = selX(), m = x ? manualOf(x, t) : null;
   $('srcNote').textContent = m ? x.name+'依你 '+hms(m.at)+' 的對時推算' : DATA.note;
 }
