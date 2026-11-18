@@ -101,5 +101,50 @@
 "spread": 6.1,
 "agree": 17,
 "status": "ok"
+},
+{
+"when": "2026-11-18 21:19",
+"x": "chifeng",
+"days": "wd",
+"plan": "08",
+"from": 72000,
+"cycles": 4,
+"clean": 4,
+"len": 56.4,
+"len_plan": 57,
+"err": -0.9,
+"spread": 0.7,
+"agree": 4,
+"status": "ok"
+},
+{
+"when": "2026-11-18 21:19",
+"x": "zhongshan",
+"days": "wd",
+"plan": "08",
+"from": 72000,
+"cycles": 3,
+"clean": 3,
+"len": 105.8,
+"len_plan": 108,
+"err": 0.6,
+"spread": 1.0,
+"agree": 3,
+"status": "ok"
+},
+{
+"when": "2026-11-18 21:19",
+"x": "chengde",
+"days": "wd",
+"plan": "08",
+"from": 72000,
+"cycles": 7,
+"clean": 4,
+"len": 58.2,
+"len_plan": 57,
+"err": -6.0,
+"spread": 5.3,
+"agree": 3,
+"status": "adjusted"
 }
 ]
