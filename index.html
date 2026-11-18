@@ -98,11 +98,6 @@ header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;colum
 .nexts::-webkit-scrollbar{display:none}
 .nexts button{flex:none;min-height:30px;min-width:0;padding:0 8px;border:0;border-radius:999px;background:var(--pill);color:var(--fg);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
 .nexts button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
-/* a later crossing is chosen: calm neutral card so it is clearly not the live state */
-.x.pin{background:var(--panel);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
-.x.pin .secs{color:var(--accent)}
-.x.pin .leave,.x.pin .nexts button[aria-pressed="false"]{background:var(--bg)}
-.x.pin .word{letter-spacing:.02em;font-size:22px}
 
 /* umbrella answer */
 #umb{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;padding:10px 14px 11px}
@@ -330,18 +325,18 @@ function render(){
     const s = stateAt(p, t), w = leaveIn(p, t, walkOf(x)), secs = Math.ceil(s.left);
     const leave = w === null ? '可過時間太短' : (w < 1 ? '現在出發' : Math.ceil(w) + ' 秒後出發');
     const pin = pinOf(x, t), walk = walkOf(x);
-    e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;      // 收合的那一行永遠是即時狀況
-    const live = 'x' + (s.go ? ' go' : '');            // 收合時的底色永遠跟著即時燈號
-    if (pin){                                        // 對選定的那一班倒數
+    e.strip.hidden = false; e.go.style.width = (p.red/p.cycle*100)+'%'; e.now.style.left = (s.ph/p.cycle*100)+'%';
+    if (pin){                                        // 選了之後的某一班：版面不變，倒數和出發時間都改成對那一班（展開、收合一致）
       const dep = pin - walk - t, ok = t + walk <= pin + p.red - cross;
-      e.card.className = open ? 'x pin open' : live;
-      e.word.textContent = hms(pin) + ' 這一班'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過';
-      e.strip.hidden = true;
-      e.leave.textContent = dep >= 1 ? durText(dep) + '後出發' : (ok ? '現在出發' : '這一班來不及'); e.leave.className = 'leaveMsg' + (dep < 1 && ok ? ' go' : '');
+      const leave2 = dep >= 1 ? durText(dep) + '後出發' : (ok ? '現在出發' : '這一班來不及');
+      e.card.className = 'x' + (open ? ' open' : '');
+      e.sum1.textContent = hms(pin) + ' 還有 ' + dur(pin - t); e.sum2.textContent = leave2;
+      e.word.textContent = '先等等'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過・' + hms(pin) + ' 這一班';
+      e.leave.textContent = leave2; e.leave.className = 'leaveMsg' + (dep < 1 && ok ? ' go' : '');
     } else {
-      e.card.className = live + (open ? ' open' : '');
+      e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
+      e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
       e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.go ? '秒後不能過' : '秒後可以過';
-      e.strip.hidden = false; e.go.style.width = (p.red/p.cycle*100)+'%'; e.now.style.left = (s.ph/p.cycle*100)+'%';
       e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
     }
     e.lbl.hidden = !!pin; e.live.hidden = !pin;
