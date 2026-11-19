@@ -338,7 +338,7 @@ const optOf = x => x.opts ? Math.min(store.get('opt_'+x.id, 0), x.opts.length - 
 const bandsOf = x => x.opts ? x.opts[optOf(x)].bands : x.bands, dirOf = x => x.opts ? x.opts[optOf(x)].dir : x.dir;
 const pinOf = (x, t) => { const v = store.get('pin_'+x.id, 0); return v > t ? v : 0; };       // 選定的那一班的開始時刻；到了就自動失效
 const dur = s => { s = Math.ceil(s); return s >= 60 ? Math.floor(s/60) + ':' + String(s%60).padStart(2, '0') : String(s); };
-const durText = s => { s = Math.ceil(s); return s >= 60 ? Math.floor(s/60) + ' 分 ' + (s%60) + ' 秒' : s + ' 秒'; };
+const durText = s => { s = Math.ceil(s); return s >= 60 ? Math.floor(s/60) + ' 分' + (s%60 ? ' ' + (s%60) + ' 秒' : '') : s + ' 秒'; };
 const selX = () => DATA.crossings.find(x => x.id === sel) || DATA.crossings[0];
 
 function bandFor(bands, t){
@@ -474,12 +474,12 @@ function render(){
       const leave2 = dep >= 1 ? durText(dep) + '後出發' : (ok ? '現在出發' : '這一班來不及');
       e.card.className = 'x pin' + (open ? ' open' : '');        // 白底、春樹青：和即時的紅綠區分開
       e.strip.hidden = true;
-      e.sum1.textContent = hms(pin).substr(0, 5) + ' 還有 ' + dur(pin - t); e.sum2.textContent = leave2;   // 收合的那一行空間有限，時刻只寫到分
-      e.word.textContent = hms(pin) + ' 這一班'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? '分:秒' : '秒') + '後可以過';
+      e.sum1.textContent = hms(pin).substr(0, 5) + ' 還有 ' + (pin - t >= 60 ? dur(pin - t) : Math.ceil(pin - t) + ' 秒'); e.sum2.textContent = leave2;   // 收合的那一行空間有限，時刻只寫到分
+      e.word.textContent = hms(pin) + ' 這一班'; e.secs.textContent = dur(pin - t); e.sub.textContent = (pin - t >= 60 ? durText(pin - t) : '秒') + '後可以過';
       e.leave.textContent = leave2; e.leave.className = 'leaveMsg' + (dep < 1 && ok ? ' go' : '');
     } else {
       e.card.className = 'x' + (s.go ? ' go' : '') + (open ? ' open' : '');
-      e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + secs + ' 秒'; e.sum2.textContent = leave;
+      e.sum1.textContent = (s.go ? '可以過 ' : '先等等 ') + (x.approx ? '約 ' : '') + secs + ' 秒'; e.sum2.textContent = leave;
       e.word.textContent = s.go ? '可以過' : '先等等'; e.secs.textContent = secs; e.sub.textContent = s.shaky ? '換時制中，這一輪抓不準' : (s.go ? '秒後不能過' : '秒後可以過') + (x.approx ? '（估計值，這個路口每輪會差幾秒）' : '');
       if (s.shaky){ e.card.classList.add('shaky'); e.sum2.textContent = '換時制中，這一輪抓不準'; }
       e.leave.textContent = leave; e.leave.className = 'leaveMsg' + (w !== null && w < 1 ? ' go' : '');
@@ -514,12 +514,15 @@ bind('sync', () => {
     const d = mod(t - (b.anchor + nudgeOf(x)) + b.cycle/2, b.cycle) - b.cycle/2;
     const log = store.get('cal_'+x.id, []).filter(r => t - r.t < 7200).concat([{t, d:Math.round(d*10)/10, plan:b.plan}]).slice(-6); store.set('cal_'+x.id, log);
   }
+  /* 手按的誤差大約半秒；和時刻表差不到 1 秒就表示時刻表是對的，維持用時刻表 */
+  if (b && closeEnough(store.get('cal_'+x.id, []).slice(-1)[0])){ store.set('manual_'+x.id, null); return; }
   store.set('nudge_'+x.id, 0); store.set('manual_'+x.id, {anchor:t, at:t, cycle:b ? b.cycle : 200, red:b ? b.red : 40});
 });
+const closeEnough = r => !!r && Math.abs(r.d) < 1;
 function calNote(){
   const x = selX(), log = x ? store.get('cal_'+x.id, []).filter(r => now() - r.t < 7200) : [];
   const say = d => (d >= 0 ? '晚 ' : '早 ') + Math.abs(d).toFixed(1) + ' 秒';
-  $('calNote').textContent = log.length ? x.name + '：你剛才按的比時刻表' + say(log[log.length-1].d) + (log.length > 1 ? '；最近 ' + log.length + ' 次平均' + say(log.reduce((a, r) => a + r.d, 0) / log.length) : '') + '（時制 ' + log[log.length-1].plan + '）。' : '';
+  $('calNote').textContent = log.length ? x.name + '：你剛才按的比時刻表' + say(log[log.length-1].d) + (log.length > 1 ? '；最近 ' + log.length + ' 次平均' + say(log.reduce((a, r) => a + r.d, 0) / log.length) : '') + '（時制 ' + log[log.length-1].plan + '）。' + (closeEnough(log[log.length-1]) ? '差不到 1 秒，照時刻表走。' : '') : '';
 }
 bind('clear', () => { const x = selX(); if (!x) return; store.set('manual_'+x.id, null); store.set('nudge_'+x.id, 0); });
 /* 外觀：預設跟著系統；點右上角圖示依序切換 跟隨系統 → 淺色 → 深色 */
@@ -532,6 +535,8 @@ function applyTheme(){
 }
 $('theme').addEventListener('click', () => { theme = {auto:'light', light:'dark', dark:'auto'}[theme]; store.set('theme', theme); applyTheme(); });
 applyTheme();
+/* 先前按過對時、而那一按和時刻表差不到 1 秒的，也回到時刻表 */
+for (const x of DATA.crossings){ const m = store.get('manual_'+x.id, null), r = store.get('cal_'+x.id, []).slice(-1)[0]; if (m && r && Math.abs(r.t - m.at) < 1 && closeEnough(r)) store.set('manual_'+x.id, null); }
 build(); loadSchedule(); clockSync();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - clkAt > 1800000) clockSync(); });
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});   // 沒網路時也打得開

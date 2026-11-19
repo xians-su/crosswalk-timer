@@ -53,6 +53,16 @@ with sync_playwright() as p:
     pg.tap('.x.open .nexts button >> nth=1'); pg.wait_for_timeout(400)
     st = pg.evaluate("(()=>{const x=document.querySelector('.x.open'); return [x.classList.contains('pin'), x.querySelector('.secs').textContent, !x.querySelector('.live').hidden, x.querySelector('.xsum b').textContent]})()")
     ok('tapping a later time switches the card to counting down to it', st[0] and st[2] and '還有' in st[3], str(st))
+    import re
+    sub = pg.evaluate("document.querySelector('.x.open .sub').textContent")
+    ok('a chosen time always shows its unit', bool(re.search(r'還有 (\d+ 秒|\d+:\d\d)$', st[3])) and bool(re.search(r'(^|\d )秒後可以過$', sub)), str([st[3], sub]))
+    # --- a manual press that agrees with the timetable keeps the timetable; one that is seconds away replaces it
+    cal = pg.evaluate('''(()=>{ const keepSel = sel, keepClk = CLK, x = DATA.crossings[0]; sel = x.id; const out = [];
+      for (const shift of [0.4, 5]){ const t = now(), b = bandFor(bandsOf(x), t), d = mod(t - b.anchor + b.cycle/2, b.cycle) - b.cycle/2; CLK += shift - d;
+        document.getElementById('sync').click(); out.push([!!manualOf(x, now()), document.getElementById('calNote').textContent]); }
+      document.getElementById('clear').click(); localStorage.removeItem('xw_cal_' + x.id); sel = keepSel; CLK = keepClk; labels(); render(); return out })()''')
+    ok('a press within 1 s of the timetable keeps the timetable', cal[0][0] is False and '照時刻表走' in cal[0][1], str(cal[0]))
+    ok('a press 5 s away switches to the press', cal[1][0] is True and '照時刻表走' not in cal[1][1], str(cal[1]))
     pg.tap('.x.open .xhead', **EDGE); pg.wait_for_timeout(250)
     ok('the collapsed row also follows the chosen time', pg.evaluate("document.querySelectorAll('.x')[2].classList.contains('pin')"))
     pg.tap('.x >> nth=2 >> .xhead', **EDGE); pg.wait_for_timeout(250); pg.tap('.x.open .opts button >> nth=1'); pg.wait_for_timeout(300)
