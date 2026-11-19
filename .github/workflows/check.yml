@@ -16,21 +16,39 @@ on:
     - cron: '25 1,4,13,15 * * 6'      # Sat 09:25 12:25 21:25 23:25
 permissions:
   contents: write
+  actions: read
 concurrency: repo-write
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      # GitHub's own schedule is often late. If something else (a manual run, or a cron on another machine calling
+      # `gh workflow run camera-check`) already started a check in the last 50 minutes, a scheduled run has nothing to add.
+      - name: Skip if a check ran recently
+        id: gate
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          recent=$(gh run list -R "$GITHUB_REPOSITORY" --workflow camera-check --limit 10 --json databaseId,createdAt \
+            -q "[.[] | select(.databaseId != $GITHUB_RUN_ID) | select((now - (.createdAt | fromdateiso8601)) < 3000)] | length")
+          echo "other checks started in the last 50 minutes: $recent"
+          [ "$recent" -gt 0 ] && echo "skip=true" >> "$GITHUB_OUTPUT" || true
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.skip != 'true'
       - run: pip install --quiet opencv-python-headless numpy
+        if: steps.gate.outputs.skip != 'true'
       - name: Sample camera
+        if: steps.gate.outputs.skip != 'true'
         run: python3 logger.py 13 /tmp/sample.csv; wc -l /tmp/sample.csv
       - name: Compare with timetable
+        if: steps.gate.outputs.skip != 'true'
         id: cmp
         run: python3 check.py /tmp/sample.csv --apply
         continue-on-error: true
       - name: Rebuild and commit
+        if: steps.gate.outputs.skip != 'true'
         run: |
           python3 build.py
           git config user.name "crosswalk-bot"
