@@ -72,3 +72,21 @@ assert all(r['status'] == 'ok' and abs(r['err']) <= 0.3 for r in after), after
 assert abs(C['SLWH710']['per_plan']['08']) <= 0.3 and abs(C['SLWH610']['per_plan']['08']) <= 0.3, C
 print('ok   a wrong timetable corrects itself:', [(r['x'], r['err']) for r in before], '->', [(r['x'], r['err']) for r in after])
 PY
+# 5. yellow read as red: the lamp comes on 3 s early but goes off on time (so it lasts 3 s longer than planned).
+#    That is not a timetable shift and must not be "adjusted" (it was, twice, on 2026-11-19/20).
+cp schedule.json "$T/schedule.json"
+python3 - "$T" <<'PY'
+import json, sys
+T = sys.argv[1]; s = json.load(open(T + '/schedule.json'))
+for x in s['crossings']:
+    for b in x['bands']:
+        if 'lamp' in b: b['lamp']['on'] = (b['lamp']['on'] + 3) % b['cycle']; b['lamp']['len'] -= 3
+json.dump(s, open(T + '/schedule.json', 'w'), ensure_ascii=False)
+PY
+python3 "$T/check.py" "$S" > "$T/f.txt" || true
+python3 - "$T" <<'PY'
+import json, sys
+T = sys.argv[1]; rows = [json.loads(l) for l in open(T + '/f.txt') if l.strip().startswith('{')]
+assert len(rows) == 2 and all(r['status'] == 'unclear' and r.get('note') == 'one edge only' and -3.4 <= r['err'] <= -2.8 for r in rows), rows
+print('ok   lamp on 3 s early but off on time (yellow read as red) is not taken for a timetable shift', [(r['x'], r['err'], r['status']) for r in rows])
+PY

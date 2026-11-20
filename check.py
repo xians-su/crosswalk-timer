@@ -7,7 +7,7 @@ For each crossing and each timing band covered by the sample:
             that crossing's per_plan K in calib.json is updated (with --apply); the page follows within minutes
   drift     early/late by more than the tolerance, but not strong enough evidence to change the timetable -> logged, and exit 1
             so that somebody is told
-  unclear   too few clean cycles (glare, traffic, camera moved) -> logged only
+  unclear   too few clean cycles (glare, traffic, camera moved), or only one edge of the lamp moved (yellow read as red) -> logged only
   mismatch  the lamp is read consistently but its duration disagrees with the plan -> logged; exit 1 if the lamp is marked strict
 FAIL looks like: 'mismatch', 'adjusted' or 'drift' lines; a timetable shifted by 30 s must produce 'adjusted' (strict lamp) or 'drift' with err about -30."""
 import sys, json, os, datetime, numpy as np
@@ -19,6 +19,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 # therefore the reported err give or take about 0.3 s.
 # TOL is how far from the timetable a lamp may be and still count as agreeing, CORE is the spread accepted between cycles.
 FINE = {'bias': 0.3, 'tol': 1.0, 'core': 0.6, 'spread': 0.6}
+LEN_ADJ = 1.5      # seconds the lamp's duration may differ from the plan for a shift to be believed (fine samples)
 COARSE = {'bias': 3.5, 'tol': 3.0, 'core': 2.5, 'spread': 2.5}
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 COLS = {'A': 3, 'B': 6, 'C': 9, 'D': 12, 'E': 15}      # first CSV column (green count) of each sampling box; red is the next one
@@ -65,7 +66,11 @@ def check(csv, sched):
                 if len(core) < 3 or len(core) < 0.6 * len(eg): r['status'] = 'unclear'
                 elif abs(r['err']) <= M['tol']: r['status'] = 'ok'
                 # correcting the timetable needs solid evidence: a lamp marked `adjust`, a fine sample, at least 4 agreeing cycles, tight spread
-                elif L.get('adjust') and M is FINE and len(core) >= 4 and r['spread'] <= M['spread']: r['status'] = 'adjusted'
+                # ... and both edges must have moved: a timetable that is really early or late keeps the lamp's duration. When the lamp
+                # comes on early but goes off at the usual time (duration longer by the same amount), the camera is counting the 3 s
+                # yellow as red — seen at dawn and in daylight on 2026-11-19/20, and it wrongly "corrected" two plans by 3 s.
+                elif M is FINE and abs(float(np.median(ln[good])) - b['lamp']['len']) > LEN_ADJ: r['status'] = 'unclear'; r['note'] = 'one edge only'
+                elif L.get('adjust') and len(core) >= 4 and M is FINE and r['spread'] <= M['spread']: r['status'] = 'adjusted'
                 else: r['status'] = 'drift'
             res.append(r)
     return res, t
