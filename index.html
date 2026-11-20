@@ -351,7 +351,10 @@ const mod = (a,n) => ((a%n)+n)%n;
 /* 換時制的規律（2026-11-18 20:00 與 23:00 用攝影機實測，兩個路口、兩次都一致）：號誌先把舊時制進行中的那一輪跑完，
    中間夾一個過渡輪，從新時制的第二輪起完全照新時制走。過渡輪的長短抓不準（實測和這裡的算法差過 5、9、21 秒），
    所以那一輪標成「抓不準」，其餘照常。
+   2026-11-20 補：過渡輪其實是新時制的一輪、只是前段被縮短。舊的一輪跑完到新時制的「可以過」之間有 76、81、95 秒時，
+   那一班都準時出現（赤峰 05:30、兩個路口 17:00，各看了兩天）；只有 7、29、54 秒時沒有出現。所以隔 GAP_MIN 秒以上才列。
    windows() 照這個規律列出一段時間內每一次「可以過」的 [開始, 結束, 是否可能不準] */
+const GAP_MIN = 75;
 const samePlan = (a, b) => !!a && !!b && a.cycle === b.cycle && a.anchor === b.anchor && a.red === b.red && a.c0 === b.c0;
 function bandStart(t, b){ const s = Math.floor(t), d = new Date((s + 8*3600)*1000); return s - (d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds()) + b.from; }
 function windows(x, t0, t1){
@@ -362,10 +365,12 @@ function windows(x, t0, t1){
     const b = bandFor(bands, cur); if (!b){ cur += 600; continue; }
     const T = bandStart(cur, b), E = T + (b.to - b.from), prev = bandFor(bands, T - 1), next = bandFor(bands, E + 1);
     const changedIn = !!prev && !samePlan(prev, b), changedOut = !!next && !samePlan(next, b);
-    let from = T;
-    if (changedIn){ const sOld = T + mod(prev.c0 - T, prev.cycle); from = sOld + mod(b.c0 - sOld, b.cycle); }      // 新時制真正開始的時刻
+    let from = T, sOld = T;
+    if (changedIn){ sOld = T + mod(prev.c0 - T, prev.cycle); from = sOld + mod(b.c0 - sOld, b.cycle); }           // 新時制真正開始的時刻
     const to = changedOut ? E + mod(b.c0 - E, b.cycle) : E;                                                        // 換走之前，把進行中的這一輪跑完
-    for (let s = from + mod(b.anchor + n - from, b.cycle); s < to; s += b.cycle)
+    const s1 = from + mod(b.anchor + n - from, b.cycle);
+    if (changedIn && s1 - b.cycle - sOld >= GAP_MIN) out.push([s1 - b.cycle, s1 - b.cycle + b.red, !!x.approx]);        // 過渡輪夠長時，裡面照新時制的位置有一班
+    for (let s = s1; s < to; s += b.cycle)
       out.push([s, s + b.red, changedIn && s < from + b.cycle]);     // 只有新時制的第一輪抓不準
     cur = E + 1;
   }

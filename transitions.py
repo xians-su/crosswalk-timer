@@ -34,6 +34,8 @@ def main(files):
                 s_old = T + mod(old['c0'] - T, old['cycle']); s_new = s_old + mod(new['c0'] - s_old, new['cycle'])
                 pred = [(k + mod(old['lamp']['on'] - k, old['cycle']), 'old plan') for k in np.arange(s_old - 5 * old['cycle'], s_old - 1, old['cycle'])]
                 pred += [(k + mod(new['lamp']['on'] - k, new['cycle']), 'new plan') for k in np.arange(s_new, T + 900, new['cycle'])]
+                early = s_new + mod(new['lamp']['on'] - s_new, new['cycle']) - new['cycle']      # the new plan's slot inside the transitional cycle
+                if early + (new['anchor'] - new['lamp']['on']) % new['cycle'] - s_old >= 75: pred.append((early, 'new plan'))   # GAP_MIN in index.html
                 print(f"\n{X['name']}  {hm(T)}  plan {old['plan']} -> {new['plan']} (cycle {old['cycle']} -> {new['cycle']} s): old cycle ends {hm(s_old)[6:]}, new plan starts {hm(s_new)[6:]}, hold {s_new - s_old:.0f} s")
                 first_new = True
                 for s, _ in [r for r in runs if T - 420 <= r[0] <= T + 900]:

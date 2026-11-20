@@ -67,6 +67,16 @@ ok('timetable change, as measured at 赤峰街口 on 2026-11-18 20:00: the old c
   assert(u.includes('19:57:55') && u.includes('20:01:15') && u.includes('20:08:01')); assert(!u.includes('20:05:01'), 'the transitional crossing is not offered');
   assert.equal(F.stateOf(X, at('2026-11-19T00:00:30+08:00')).shaky, false);          // midnight: same plan before and after, nothing changes
 });
+ok('timetable change at 17:00, as the camera saw it on 2026-11-19 and 11-20 at both crossings: the new plan already gives one crossing inside the transitional cycle', () => {
+  const hm = s => at('2026-11-20T' + s + '+08:00'), Z = DATA.crossings.find(x => x.id === 'zhongshan');
+  // 赤峰街口: lamp red at 17:01:51 (old plan), 17:04:33 and 17:07:53 (new plan); the crossing opens 2 s after the lamp
+  const a = F.stateOf(X, hm('17:03:30')); assert.equal(a.go, false); assert.equal(Math.round(hm('17:03:30') + a.left), hm('17:04:35')); assert.equal(a.shaky, false);
+  assert.equal(F.stateOf(X, hm('17:02:00')).go, true, 'old plan runs its last cycle'); assert.equal(F.stateOf(X, hm('17:05:00')).go, true);
+  assert(F.upcoming(X, hm('17:00:00'), 600).map(F.hms).includes('17:04:35'));
+  const z = F.stateOf(Z, hm('17:03:30')); assert.equal(Math.round(hm('17:03:30') + z.left), hm('17:04:26'));
+  // 23:00 at 赤峰街口: only 29 s between the end of the old cycle and the new plan's slot -> the camera saw nothing there, so none is listed
+  assert(!F.upcoming(X, at('2026-11-19T23:00:00+08:00'), 400).map(F.hms).includes('23:03:20'));
+});
 ok('rain wording by forecast amount, and the umbrella verdict', () => {
   assert.deepEqual([0.2, 0.5, 4.9, 5, 14.9, 15].map(F.rainWord), ['毛毛雨', '小雨', '小雨', '中雨', '中雨', '大雨']);
   const t = 1e9, R = mm => ({nowcast: {mm, at: t - 600, time: '12:00'}, past: null}), v = (mm, extra = {}) => F.verdict({wet: false, msg: '不用帶傘', warn: '', rainingNow: false, cells: [], ...extra}, R(mm), t);
