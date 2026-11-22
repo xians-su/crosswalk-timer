@@ -950,5 +950,37 @@
 "agree": 3,
 "fine": true,
 "status": "ok"
+},
+{
+"when": "2026-11-23 01:25",
+"x": "chifeng",
+"days": "wd",
+"plan": "06",
+"from": 3600,
+"cycles": 8,
+"clean": 8,
+"len": 47.9,
+"len_plan": 47,
+"err": 0.13,
+"spread": 0.68,
+"agree": 8,
+"fine": true,
+"status": "ok"
+},
+{
+"when": "2026-11-23 01:25",
+"x": "zhongshan",
+"days": "wd",
+"plan": "06",
+"from": 3600,
+"cycles": 8,
+"clean": 8,
+"len": 61.6,
+"len_plan": 62,
+"err": 0.01,
+"spread": 0.66,
+"agree": 6,
+"fine": true,
+"status": "ok"
 }
 ]
