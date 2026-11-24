@@ -6,3 +6,4 @@ analyze.py
 verify.py
 rec.py
 __pycache__/
+_local/
