@@ -1798,5 +1798,29 @@
 "len": 98.9,
 "len_plan": 119,
 "status": "unclear"
+},
+{
+"when": "2026-11-26 17:04",
+"x": "chifeng",
+"days": "wd",
+"plan": "11",
+"from": 61200,
+"cycles": 2,
+"clean": 2,
+"len": 81.9,
+"len_plan": 82,
+"status": "unclear"
+},
+{
+"when": "2026-11-26 17:04",
+"x": "zhongshan",
+"days": "wd",
+"plan": "11",
+"from": 61200,
+"cycles": 2,
+"clean": 2,
+"len": 107.7,
+"len_plan": 111,
+"status": "unclear"
 }
 ]
