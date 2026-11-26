@@ -1714,5 +1714,33 @@
 "agree": 6,
 "fine": true,
 "status": "ok"
+},
+{
+"when": "2026-11-26 09:00",
+"x": "chifeng",
+"days": "wd",
+"plan": "09",
+"from": 25200,
+"cycles": 4,
+"clean": 4,
+"len": 70.9,
+"len_plan": 71,
+"err": -0.06,
+"spread": 0.1,
+"agree": 4,
+"fine": true,
+"status": "ok"
+},
+{
+"when": "2026-11-26 09:00",
+"x": "zhongshan",
+"days": "wd",
+"plan": "09",
+"from": 25200,
+"cycles": 4,
+"clean": 1,
+"len": 99.4,
+"len_plan": 111,
+"status": "unclear"
 }
 ]
