@@ -2067,5 +2067,29 @@
 "agree": 6,
 "fine": true,
 "status": "ok"
+},
+{
+"when": "2026-11-28 09:00",
+"x": "chifeng",
+"days": "we",
+"plan": "12",
+"from": 32400,
+"cycles": 1,
+"clean": 1,
+"len": 56.9,
+"len_plan": 57,
+"status": "unclear"
+},
+{
+"when": "2026-11-28 09:00",
+"x": "zhongshan",
+"days": "we",
+"plan": "12",
+"from": 32400,
+"cycles": 1,
+"clean": 1,
+"len": 101.7,
+"len_plan": 107,
+"status": "unclear"
 }
 ]
